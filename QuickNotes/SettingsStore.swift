@@ -142,8 +142,15 @@ final class SettingsStore: ObservableObject {
     }
 
     private static func isNewer(_ remote: String, than current: String) -> Bool {
-        let r = remote.split(separator: ".").compactMap { Int($0) }
-        let c = current.split(separator: ".").compactMap { Int($0) }
+        // Takes each component's leading numeric prefix rather than dropping
+        // non-numeric components outright (`Int("2-beta")` is nil) — dropping
+        // desyncs positional comparison against the other version entirely,
+        // instead of just treating the suffix as insignificant.
+        func components(_ version: String) -> [Int] {
+            version.split(separator: ".").map { Int($0.prefix { $0.isNumber }) ?? 0 }
+        }
+        let r = components(remote)
+        let c = components(current)
         for i in 0..<max(r.count, c.count) {
             let rv = i < r.count ? r[i] : 0
             let cv = i < c.count ? c[i] : 0

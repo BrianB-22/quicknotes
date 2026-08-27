@@ -1,5 +1,7 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
+import os
 
 struct NoteDetailView: View {
     @EnvironmentObject var noteStore: NoteStore
@@ -7,6 +9,7 @@ struct NoteDetailView: View {
     @State private var passcodePrompt: PasscodePrompt?
     @State private var showingDeleteConfirmation = false
     @State private var shouldFocusEditor = false
+    @State private var pendingFormat: MarkdownFormatAction?
 
     private var selectedNote: Note? {
         noteStore.notes.first { $0.id == noteStore.selectedNoteID }
@@ -21,11 +24,20 @@ struct NoteDetailView: View {
                     if note.isLocked && noteStore.decryptedCache[note.id] == nil {
                         lockedPlaceholder(for: note)
                     } else {
-                        LinkAwareTextEditor(
-                            text: textBinding(for: note),
-                            fontSize: settings.noteFontSize.pointSize,
-                            shouldFocus: $shouldFocusEditor
-                        )
+                        Group {
+                            if note.effectivePreviewMode == .markdown {
+                                MarkdownPreviewView(text: currentText(for: note), fontSize: settings.noteFontSize.pointSize)
+                            } else {
+                                LinkAwareTextEditor(
+                                    text: textBinding(for: note),
+                                    fontSize: settings.noteFontSize.pointSize,
+                                    shouldFocus: $shouldFocusEditor,
+                                    pendingFormat: $pendingFormat
+                                )
+                            }
+                        }
+                        Divider()
+                        formatBar(for: note)
                     }
                 }
             } else {
@@ -62,6 +74,14 @@ struct NoteDetailView: View {
                     .contentShape(Rectangle())
             }
             .reliableHelp("Copy Note to Clipboard")
+            .disabled(note.isLocked && noteStore.decryptedCache[note.id] == nil)
+
+            Button(action: { exportNote(note) }) {
+                Image(systemName: "square.and.arrow.down")
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .reliableHelp("Save Note As…")
             .disabled(note.isLocked && noteStore.decryptedCache[note.id] == nil)
 
             lockButton(for: note)
@@ -117,11 +137,13 @@ struct NoteDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private func currentText(for note: Note) -> String {
+        note.isLocked ? (noteStore.decryptedCache[note.id] ?? "") : (note.plainText ?? "")
+    }
+
     private func textBinding(for note: Note) -> Binding<String> {
         Binding(
-            get: {
-                note.isLocked ? (noteStore.decryptedCache[note.id] ?? "") : (note.plainText ?? "")
-            },
+            get: { currentText(for: note) },
             set: { newValue in
                 if note.isLocked {
                     noteStore.updateLockedText(newValue, for: note.id)
@@ -132,10 +154,91 @@ struct NoteDetailView: View {
         )
     }
 
+    private func previewModeBinding(for note: Note) -> Binding<NotePreviewMode> {
+        Binding(
+            get: { note.effectivePreviewMode },
+            set: { noteStore.setPreviewMode($0, for: note.id) }
+        )
+    }
+
+    @ViewBuilder
+    private func formatBar(for note: Note) -> some View {
+        HStack(spacing: 10) {
+            Picker("", selection: previewModeBinding(for: note)) {
+                Text("TXT").tag(NotePreviewMode.text)
+                Text("MD").tag(NotePreviewMode.markdown)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 110)
+
+            Divider().frame(height: 16)
+
+            if note.effectivePreviewMode == .text {
+                formatButton("bold", action: .bold, help: "Bold")
+                formatButton("italic", action: .italic, help: "Italic")
+                formatButton("chevron.left.forwardslash.chevron.right", action: .code, help: "Code")
+                formatButton("textformat.size", action: .heading, help: "Heading")
+                formatButton("list.bullet", action: .bulletList, help: "Bulleted List")
+                formatButton("link", action: .link, help: "Link")
+            } else {
+                Text("MD is Read-Only")
+                    .font(.system(size: max(settings.noteFontSize.pointSize - 3, 9)))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .buttonStyle(.borderless)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+    }
+
+    private func formatButton(_ systemImage: String, action: MarkdownFormatAction, help: String) -> some View {
+        Button(action: { pendingFormat = action }) {
+            Image(systemName: systemImage)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+        }
+        .reliableHelp(help)
+    }
+
     private func copyToClipboard(_ note: Note) {
-        let content = note.isLocked ? (noteStore.decryptedCache[note.id] ?? "") : (note.plainText ?? "")
+        let content = currentText(for: note)
         guard !content.isEmpty else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(content, forType: .string)
+    }
+
+    private func exportNote(_ note: Note) {
+        let content = currentText(for: note)
+        let isMarkdown = note.effectivePreviewMode == .markdown
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [isMarkdown ? (UTType(filenameExtension: "md") ?? .plainText) : .plainText]
+        panel.nameFieldStringValue = suggestedFileName(for: content, isMarkdown: isMarkdown)
+        panel.canCreateDirectories = true
+
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                try content.write(to: url, atomically: true, encoding: .utf8)
+            } catch {
+                Self.exportLogger.error("Failed to export note to \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    private static let exportLogger = Logger(subsystem: "com.quicknotes", category: "export")
+
+    private func suggestedFileName(for content: String, isMarkdown: Bool) -> String {
+        let firstLine = content
+            .split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
+            .first.map(String.init) ?? ""
+        let trimmed = firstLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        // "/" isn't valid in a filename; anything else NSSavePanel already guards.
+        let sanitized = trimmed.replacingOccurrences(of: "/", with: "-")
+        let base = sanitized.isEmpty ? "Note" : String(sanitized.prefix(80))
+        return "\(base).\(isMarkdown ? "md" : "txt")"
     }
 }

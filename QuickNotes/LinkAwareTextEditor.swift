@@ -1,6 +1,26 @@
 import SwiftUI
 import AppKit
 
+/// A markdown formatting action requested from outside the editor (e.g. a
+/// toolbar button). Applied to the current selection, then wraps or inserts
+/// the given markers and re-selects the affected text. When there's nothing
+/// selected, each action's `placeholder` is inserted and pre-selected instead
+/// of leaving the markers empty (`****`) — selected so typing immediately
+/// replaces it, matching the current selected-text behavior rather than
+/// adding a step. Note: clicking a button again on already-formatted text
+/// does not unwrap it (no toggle-off) — it wraps a second time.
+enum MarkdownFormatAction: Equatable {
+    case wrap(prefix: String, suffix: String, placeholder: String)
+    case linePrefix(String, placeholder: String)
+
+    static let bold = MarkdownFormatAction.wrap(prefix: "**", suffix: "**", placeholder: "bold text")
+    static let italic = MarkdownFormatAction.wrap(prefix: "_", suffix: "_", placeholder: "italic text")
+    static let code = MarkdownFormatAction.wrap(prefix: "`", suffix: "`", placeholder: "code")
+    static let heading = MarkdownFormatAction.linePrefix("# ", placeholder: "Heading")
+    static let bulletList = MarkdownFormatAction.linePrefix("- ", placeholder: "list item")
+    static let link = MarkdownFormatAction.wrap(prefix: "[", suffix: "](https://)", placeholder: "link text")
+}
+
 /// A plain-text editor that behaves like `TextEditor` but auto-detects URLs and
 /// file paths as clickable links (a plain click opens them, cursor turns into a
 /// pointing hand on hover — AppKit's default handling for `.link`-attributed
@@ -10,6 +30,7 @@ struct LinkAwareTextEditor: NSViewRepresentable {
     @Binding var text: String
     var fontSize: CGFloat
     @Binding var shouldFocus: Bool
+    @Binding var pendingFormat: MarkdownFormatAction?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -74,6 +95,18 @@ struct LinkAwareTextEditor: NSViewRepresentable {
                 shouldFocus = false
             }
         }
+
+        // Same one-shot pattern as `shouldFocus`: a toolbar button sets this,
+        // we consume it once here, then clear it so it doesn't re-fire on the
+        // next unrelated re-render. Deferred to the next run-loop turn, same as
+        // `shouldFocus` above — applying it (and clearing the binding) inline
+        // here would be a SwiftUI state mutation during view update.
+        if let format = pendingFormat {
+            DispatchQueue.main.async {
+                context.coordinator.apply(format, to: textView)
+                pendingFormat = nil
+            }
+        }
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
@@ -118,6 +151,69 @@ struct LinkAwareTextEditor: NSViewRepresentable {
             }
 
             textStorage.endEditing()
+        }
+
+        /// Applies a markdown formatting action to the current selection (or, for
+        /// line-level actions like headings/bullets, the line(s) it spans).
+        func apply(_ action: MarkdownFormatAction, to textView: NSTextView) {
+            guard let textStorage = textView.textStorage else { return }
+            let nsText = textStorage.string as NSString
+            let selectedRange = textView.selectedRange()
+
+            switch action {
+            case .wrap(let prefix, let suffix, let placeholder):
+                let selected = nsText.substring(with: selectedRange)
+                let body = selected.isEmpty ? placeholder : selected
+                let replacement = prefix + body + suffix
+                guard textView.shouldChangeText(in: selectedRange, replacementString: replacement) else { return }
+                textStorage.replaceCharacters(in: selectedRange, with: replacement)
+                textView.didChangeText()
+                // Empty selection: select the inserted placeholder so typing
+                // replaces it immediately. Non-empty: re-select the whole wrapped
+                // range so a second click of the same button can toggle it off.
+                let newRange = selected.isEmpty
+                    ? NSRange(location: selectedRange.location + (prefix as NSString).length, length: (placeholder as NSString).length)
+                    : NSRange(location: selectedRange.location, length: (replacement as NSString).length)
+                textView.setSelectedRange(newRange)
+
+            case .linePrefix(let prefix, let placeholder):
+                let lineRange = nsText.lineRange(for: selectedRange)
+                let lineIsEmpty = nsText.substring(with: lineRange).trimmingCharacters(in: .newlines).isEmpty
+
+                if selectedRange.length == 0 && lineIsEmpty {
+                    // Insert at the cursor position itself, not by replacing
+                    // `lineRange` — an empty line's lineRange is often just its
+                    // trailing "\n" terminator, and replacing that would merge
+                    // it with the next line instead of inserting into it.
+                    let insertRange = NSRange(location: selectedRange.location, length: 0)
+                    let replacement = prefix + placeholder
+                    guard textView.shouldChangeText(in: insertRange, replacementString: replacement) else { return }
+                    textStorage.replaceCharacters(in: insertRange, with: replacement)
+                    textView.didChangeText()
+                    let placeholderRange = NSRange(location: insertRange.location + (prefix as NSString).length, length: (placeholder as NSString).length)
+                    textView.setSelectedRange(placeholderRange)
+                    return
+                }
+
+                var lineStarts: [Int] = []
+                nsText.enumerateSubstrings(in: lineRange, options: .byLines) { _, substringRange, _, _ in
+                    lineStarts.append(substringRange.location)
+                }
+                if lineStarts.isEmpty { lineStarts = [lineRange.location] }
+
+                // Insert back-to-front so earlier insertions don't shift the
+                // locations of the ones still queued.
+                var insertedCount = 0
+                for location in lineStarts.reversed() {
+                    let insertRange = NSRange(location: location, length: 0)
+                    guard textView.shouldChangeText(in: insertRange, replacementString: prefix) else { continue }
+                    textStorage.replaceCharacters(in: insertRange, with: prefix)
+                    insertedCount += 1
+                }
+                textView.didChangeText()
+                let addedLength = (prefix as NSString).length * insertedCount
+                textView.setSelectedRange(NSRange(location: lineRange.location, length: lineRange.length + addedLength))
+            }
         }
 
         func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {

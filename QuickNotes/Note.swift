@@ -1,6 +1,11 @@
 import Foundation
 import SwiftUI
 
+enum NotePreviewMode: String, Codable {
+    case text
+    case markdown
+}
+
 enum NoteColorLabel: String, Codable, CaseIterable, Identifiable {
     case red, yellow, pink, blue, green, purple
 
@@ -41,9 +46,17 @@ struct Note: Identifiable, Codable {
     /// falls back to a generic "Locked Note" label.
     var lockedTitleSnapshot: String?
 
+    /// Nil for every note written before this setting existed — treat nil as
+    /// `.text` rather than giving it a non-optional default, since a plain
+    /// `JSONDecoder().decode(Note.self, from:)` call with no custom `init(from:)`
+    /// would otherwise fail to decode (and silently drop) every note already on
+    /// disk that predates this field.
+    var previewMode: NotePreviewMode?
+
     init(id: UUID, createdAt: Date, modifiedAt: Date, isPinned: Bool = false,
          isLocked: Bool = false, colorLabel: NoteColorLabel? = nil, plainText: String? = nil,
-         encryptedPayload: EncryptedPayload? = nil, lockedTitleSnapshot: String? = nil) {
+         encryptedPayload: EncryptedPayload? = nil, lockedTitleSnapshot: String? = nil,
+         previewMode: NotePreviewMode? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
@@ -53,6 +66,11 @@ struct Note: Identifiable, Codable {
         self.plainText = plainText
         self.encryptedPayload = encryptedPayload
         self.lockedTitleSnapshot = lockedTitleSnapshot
+        self.previewMode = previewMode
+    }
+
+    var effectivePreviewMode: NotePreviewMode {
+        previewMode ?? .text
     }
 
     /// `showLockedPreview` reflects the current "show note preview while locked"

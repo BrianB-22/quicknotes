@@ -1,8 +1,12 @@
 import Foundation
 import Combine
 import AppKit
+import CryptoKit
+import os
 
 final class NoteStore: ObservableObject {
+    private static let logger = Logger(subsystem: "com.quicknotes", category: "persistence")
+
     @Published var notes: [Note] = []
     @Published var selectedNoteID: UUID? {
         didSet {
@@ -30,7 +34,15 @@ final class NoteStore: ObservableObject {
     @Published private(set) var lastUsedPasscode: String?
 
     private var sessionPasscodes: [UUID: String] = [:]
+    /// Keys derived from a session's passcode, cached so re-encrypting on every
+    /// keystroke (`updateLockedText`) doesn't redo the 200k-iteration PBKDF2
+    /// derive each time — that alone was the dominant per-keystroke cost.
+    private var sessionKeys: [UUID: SymmetricKey] = [:]
     private var relockTimers: [UUID: Timer] = [:]
+    /// Keeps the process from being App Nap–throttled while a relock timer is
+    /// pending — this app has no visible window most of the time (popover
+    /// closed), which is exactly the profile App Nap targets for deferral.
+    private var relockActivities: [UUID: NSObjectProtocol] = [:]
     private let settings: SettingsStore
     private let directory: URL
 
@@ -55,8 +67,16 @@ final class NoteStore: ObservableObject {
         decoder.dateDecodingStrategy = .iso8601
         notes = files
             .compactMap { url -> Note? in
-                guard let data = try? Data(contentsOf: url) else { return nil }
-                return try? decoder.decode(Note.self, from: data)
+                guard let data = try? Data(contentsOf: url) else {
+                    Self.logger.error("Could not read note file at \(url.lastPathComponent, privacy: .public)")
+                    return nil
+                }
+                do {
+                    return try decoder.decode(Note.self, from: data)
+                } catch {
+                    Self.logger.error("Could not decode note file at \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
             }
             .sorted(by: sortOrder)
     }
@@ -64,8 +84,12 @@ final class NoteStore: ObservableObject {
     private func persist(_ note: Note) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(note) else { return }
-        try? data.write(to: fileURL(for: note.id), options: .atomic)
+        do {
+            let data = try encoder.encode(note)
+            try data.write(to: fileURL(for: note.id), options: .atomic)
+        } catch {
+            Self.logger.error("Failed to persist note \(note.id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func sortOrder(_ lhs: Note, _ rhs: Note) -> Bool {
@@ -99,9 +123,11 @@ final class NoteStore: ObservableObject {
     func delete(_ id: UUID) {
         relockTimers[id]?.invalidate()
         relockTimers[id] = nil
+        endRelockActivity(for: id)
         notes.removeAll { $0.id == id }
         decryptedCache[id] = nil
         sessionPasscodes[id] = nil
+        sessionKeys[id] = nil
         KeychainStore.deletePasscode(for: id)
         try? FileManager.default.removeItem(at: fileURL(for: id))
         // Picking a replacement is left to the view layer (see NoteListView),
@@ -122,6 +148,12 @@ final class NoteStore: ObservableObject {
         persist(notes[idx])
     }
 
+    func setPreviewMode(_ mode: NotePreviewMode, for id: UUID) {
+        guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
+        notes[idx].previewMode = mode
+        persist(notes[idx])
+    }
+
     // MARK: - Locking
 
     func lock(_ id: UUID, passcode: String) {
@@ -130,12 +162,16 @@ final class NoteStore: ObservableObject {
               let plainText = notes[idx].plainText,
               let payload = try? LockManager.encrypt(plainText, passcode: passcode) else { return }
         notes[idx].encryptedPayload = payload
-        notes[idx].lockedTitleSnapshot = firstLine(of: plainText)
+        // Only capture the title snapshot when the preview setting is actually
+        // on — this is content escaping encryption onto disk in plaintext, so
+        // it should never be written just because a lock happened to occur.
+        notes[idx].lockedTitleSnapshot = settings.showTitlePreviewWhileLocked ? firstLine(of: plainText) : nil
         notes[idx].plainText = nil
         notes[idx].isLocked = true
         notes[idx].modifiedAt = Date()
         decryptedCache[id] = nil
         sessionPasscodes[id] = nil
+        sessionKeys[id] = nil
         lastUsedPasscode = passcode
         persist(notes[idx])
     }
@@ -148,33 +184,82 @@ final class NoteStore: ObservableObject {
               let text = try? LockManager.decrypt(payload, passcode: passcode) else { return false }
         decryptedCache[id] = text
         sessionPasscodes[id] = passcode
+        sessionKeys[id] = LockManager.deriveKey(passcode: passcode, salt: payload.salt)
         lastUsedPasscode = passcode
         scheduleAutoRelock(for: id)
         return true
     }
 
-    /// Re-encrypts a locked note's edits using the passcode from this unlock session.
+    /// Re-encrypts a locked note's edits using the key cached at unlock time —
+    /// deliberately not re-deriving from the passcode here, since this runs on
+    /// every keystroke and PBKDF2 at 200k iterations is too slow to repeat that
+    /// often (see `sessionKeys`).
     func updateLockedText(_ text: String, for id: UUID) {
         guard let idx = notes.firstIndex(where: { $0.id == id }),
               notes[idx].isLocked,
-              let passcode = sessionPasscodes[id],
-              let payload = try? LockManager.encrypt(text, passcode: passcode) else { return }
+              let salt = notes[idx].encryptedPayload?.salt else { return }
+
+        let payload: EncryptedPayload?
+        if let key = sessionKeys[id] {
+            payload = try? LockManager.encrypt(text, key: key, salt: salt)
+        } else if let passcode = sessionPasscodes[id] {
+            // Defensive fallback; shouldn't happen since unlock() always populates sessionKeys.
+            payload = try? LockManager.encrypt(text, passcode: passcode)
+        } else {
+            payload = nil
+        }
+        guard let payload else { return }
+
         decryptedCache[id] = text
         notes[idx].encryptedPayload = payload
-        notes[idx].lockedTitleSnapshot = firstLine(of: text)
+        if settings.showTitlePreviewWhileLocked {
+            notes[idx].lockedTitleSnapshot = firstLine(of: text)
+        }
         notes[idx].modifiedAt = Date()
         persist(notes[idx])
         scheduleAutoRelock(for: id) // editing counts as activity; push the timer back out
     }
 
+    /// Verifies the passcode, then permanently converts a locked note back into
+    /// a normal plain-text note — unlike `unlock()`, which only decrypts into
+    /// the in-session view cache. There is otherwise no way back once a note is
+    /// locked: no code path ever sets `isLocked = false` besides this one.
+    @discardableResult
+    func removeLock(_ id: UUID, passcode: String) -> Bool {
+        guard let idx = notes.firstIndex(where: { $0.id == id }),
+              notes[idx].isLocked,
+              let payload = notes[idx].encryptedPayload,
+              let text = try? LockManager.decrypt(payload, passcode: passcode) else { return false }
+
+        relockTimers[id]?.invalidate()
+        relockTimers[id] = nil
+        endRelockActivity(for: id)
+
+        notes[idx].isLocked = false
+        notes[idx].plainText = text
+        notes[idx].encryptedPayload = nil
+        notes[idx].lockedTitleSnapshot = nil
+        notes[idx].modifiedAt = Date()
+        decryptedCache[id] = nil
+        sessionPasscodes[id] = nil
+        sessionKeys[id] = nil
+        KeychainStore.deletePasscode(for: id)
+        persist(notes[idx])
+        resort() // modifiedAt changed
+        return true
+    }
+
     func relock(_ id: UUID) {
         relockTimers[id]?.invalidate()
         relockTimers[id] = nil
+        endRelockActivity(for: id)
 
         // Backfills the title snapshot for notes that were locked before this
-        // feature existed (or while the preview setting was off), so simply
-        // viewing and re-locking a note is enough to pick it up.
-        if let idx = notes.firstIndex(where: { $0.id == id }),
+        // feature existed, so simply viewing and re-locking a note is enough to
+        // pick it up — but only when the preview setting is actually on; when
+        // it's off there's nothing to backfill (nothing should be captured).
+        if settings.showTitlePreviewWhileLocked,
+           let idx = notes.firstIndex(where: { $0.id == id }),
            notes[idx].isLocked,
            let text = decryptedCache[id] {
             let snapshot = firstLine(of: text)
@@ -185,6 +270,7 @@ final class NoteStore: ObservableObject {
         }
         decryptedCache[id] = nil
         sessionPasscodes[id] = nil
+        sessionKeys[id] = nil
     }
 
     func relockAll() {
@@ -194,23 +280,45 @@ final class NoteStore: ObservableObject {
         lastUsedPasscode = nil
     }
 
-    /// Called when the popover closes. Only force-relocks everything when the
-    /// auto-relock setting is "Immediate" — longer delays and "until quit" are
+    /// Called when the popover closes. The remembered passcode is always
+    /// forgotten here (a per-popover-session convenience, not tied to the
+    /// relock delay) — but notes themselves only force-relock when the
+    /// auto-relock setting is "Immediate"; longer delays and "until quit" are
     /// meant to survive the popover closing, backed by a real Timer since this
     /// is a background app that keeps running.
     func popoverDidClose() {
+        lastUsedPasscode = nil
         if settings.autoRelockDelay == .immediate {
             relockAll()
+        }
+    }
+
+    /// Called when the Touch ID setting is turned off — otherwise a previously
+    /// saved passcode just sits in the Keychain indefinitely with no way for
+    /// the user to know it's still there.
+    func wipeAllSavedTouchIDPasscodes() {
+        for note in notes where note.isLocked {
+            KeychainStore.deletePasscode(for: note.id)
         }
     }
 
     private func scheduleAutoRelock(for id: UUID) {
         relockTimers[id]?.invalidate()
         relockTimers[id] = nil
+        endRelockActivity(for: id)
         guard let seconds = settings.autoRelockDelay.seconds else { return }
+        relockActivities[id] = ProcessInfo.processInfo.beginActivity(
+            options: .userInitiated, reason: "QuickNotes auto re-lock timer"
+        )
         relockTimers[id] = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] _ in
             self?.relock(id)
         }
+    }
+
+    private func endRelockActivity(for id: UUID) {
+        guard let activity = relockActivities[id] else { return }
+        ProcessInfo.processInfo.endActivity(activity)
+        relockActivities[id] = nil
     }
 
     private func firstLine(of text: String) -> String {

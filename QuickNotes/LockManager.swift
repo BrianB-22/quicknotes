@@ -19,6 +19,14 @@ enum LockManager {
     static func encrypt(_ plainText: String, passcode: String) throws -> EncryptedPayload {
         let salt = randomBytes(count: saltLength)
         let key = deriveKey(passcode: passcode, salt: salt)
+        return try encrypt(plainText, key: key, salt: salt)
+    }
+
+    /// Fast path for re-encrypting with an already-derived key (see `NoteStore.sessionKeys`) —
+    /// skips the 200k-iteration PBKDF2 derive, which is too slow to redo on every keystroke.
+    /// Reuses the note's existing salt: safe within one unlock session since AES-GCM's `seal`
+    /// already generates a fresh internal nonce per call.
+    static func encrypt(_ plainText: String, key: SymmetricKey, salt: Data) throws -> EncryptedPayload {
         let sealedBox = try AES.GCM.seal(Data(plainText.utf8), using: key)
         guard let combined = sealedBox.combined else { throw LockError.decryptionFailed }
         return EncryptedPayload(ciphertext: combined, salt: salt)
@@ -32,7 +40,7 @@ enum LockManager {
         return text
     }
 
-    private static func deriveKey(passcode: String, salt: Data) -> SymmetricKey {
+    static func deriveKey(passcode: String, salt: Data) -> SymmetricKey {
         var derivedKeyData = Data(count: keyLength)
         let passwordLength = passcode.utf8.count
         _ = derivedKeyData.withUnsafeMutableBytes { derivedKeyBytes -> Int32 in

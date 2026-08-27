@@ -7,11 +7,21 @@ struct NoteListView: View {
     @Binding var showingSettings: Bool
     @State private var passcodePrompt: PasscodePrompt?
     @State private var searchText = ""
+    @State private var pendingDeleteID: UUID?
 
     private var filteredNotes: [Note] {
         guard !searchText.isEmpty else { return noteStore.notes }
         return noteStore.notes.filter { note in
             if note.isLocked {
+                // A note unlocked-for-viewing this session is functionally
+                // unlocked from the user's perspective — match its live
+                // content/title, not the stale on-disk snapshot, so the title
+                // shown in the row (see NoteRow below) can't fail to match.
+                if let unlockedText = noteStore.decryptedCache[note.id] {
+                    return unlockedText.localizedCaseInsensitiveContains(searchText)
+                        || note.listTitle(showLockedPreview: settings.showTitlePreviewWhileLocked, unlockedText: unlockedText)
+                            .localizedCaseInsensitiveContains(searchText)
+                }
                 return note.listTitle(showLockedPreview: settings.showTitlePreviewWhileLocked)
                     .localizedCaseInsensitiveContains(searchText)
             }
@@ -75,6 +85,11 @@ struct NoteListView: View {
                             Button(note.isLocked ? "Unlock…" : "Lock…") {
                                 passcodePrompt = PasscodePrompt(id: note.id, mode: note.isLocked ? .unlock : .lock)
                             }
+                            if note.isLocked {
+                                Button("Remove Lock…") {
+                                    passcodePrompt = PasscodePrompt(id: note.id, mode: .removeLock)
+                                }
+                            }
                             Button(note.isPinned ? "Unpin" : "Pin") {
                                 noteStore.togglePin(note.id)
                             }
@@ -87,7 +102,7 @@ struct NoteListView: View {
                             }
                             Divider()
                             Button("Delete", role: .destructive) {
-                                noteStore.delete(note.id)
+                                pendingDeleteID = note.id
                             }
                         }
                 }
@@ -96,6 +111,17 @@ struct NoteListView: View {
         }
         .sheet(item: $passcodePrompt) { prompt in
             PasscodeSheet(prompt: prompt).environmentObject(noteStore).environmentObject(settings)
+        }
+        .confirmationDialog(
+            "Delete this note?",
+            isPresented: Binding(get: { pendingDeleteID != nil }, set: { if !$0 { pendingDeleteID = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let id = pendingDeleteID { noteStore.delete(id) }
+                pendingDeleteID = nil
+            }
+            Button("Cancel", role: .cancel) { pendingDeleteID = nil }
         }
         .onChange(of: noteStore.selectedNoteID) { _, newValue in
             // NoteStore only ever nils this out itself when the selected note
@@ -178,7 +204,7 @@ private struct RelativeTimeText: View {
 }
 
 struct PasscodePrompt: Identifiable {
-    enum Mode { case lock, unlock }
+    enum Mode { case lock, unlock, removeLock }
     let id: UUID
     let mode: Mode
 }
@@ -194,13 +220,21 @@ struct PasscodeSheet: View {
     @State private var errorMessage: String?
 
     private var offerTouchID: Bool {
-        prompt.mode == .unlock && settings.useTouchIDForLockedNotes
+        (prompt.mode == .unlock || prompt.mode == .removeLock) && settings.useTouchIDForLockedNotes
             && BiometricAuth.isAvailable && KeychainStore.hasPasscode(for: prompt.id)
+    }
+
+    private var title: String {
+        switch prompt.mode {
+        case .lock: return "Lock Note"
+        case .unlock: return "Unlock Note"
+        case .removeLock: return "Remove Lock"
+        }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(prompt.mode == .lock ? "Lock Note" : "Unlock Note")
+            Text(title)
                 .font(.headline)
 
             if offerTouchID {
@@ -242,7 +276,7 @@ struct PasscodeSheet: View {
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }
-                Button(prompt.mode == .lock ? "Lock" : "Unlock") { submit() }
+                Button(submitLabel) { submit() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(passcode.isEmpty || (prompt.mode == .lock && passcode != confirmPasscode))
             }
@@ -256,9 +290,17 @@ struct PasscodeSheet: View {
             // pre-filling both fields there would let you lock it by hitting
             // Return without ever having typed anything, silently reusing
             // whatever passcode a previous note happened to use.
-            if prompt.mode == .unlock, let remembered = noteStore.lastUsedPasscode {
+            if prompt.mode != .lock, let remembered = noteStore.lastUsedPasscode {
                 passcode = remembered
             }
+        }
+    }
+
+    private var submitLabel: String {
+        switch prompt.mode {
+        case .lock: return "Lock"
+        case .unlock: return "Unlock"
+        case .removeLock: return "Remove Lock"
         }
     }
 
@@ -277,15 +319,29 @@ struct PasscodeSheet: View {
                 errorMessage = "Incorrect passcode."
                 passcode = ""
             }
+        case .removeLock:
+            if noteStore.removeLock(prompt.id, passcode: passcode) {
+                dismiss()
+            } else {
+                errorMessage = "Incorrect passcode."
+                passcode = ""
+            }
         }
     }
 
+    /// The Keychain item is biometry-gated (see `KeychainStore`), so reading it
+    /// already triggers the system's own Touch ID prompt — no separate
+    /// `BiometricAuth` pre-check here, or the user would see two prompts back
+    /// to back.
     private func unlockWithTouchID() {
-        BiometricAuth.authenticate(reason: "Unlock this note") { success in
-            guard success, let savedPasscode = KeychainStore.loadPasscode(for: prompt.id) else { return }
-            if noteStore.unlock(prompt.id, passcode: savedPasscode) {
-                dismiss()
-            }
+        guard let savedPasscode = KeychainStore.loadPasscode(for: prompt.id) else { return }
+        switch prompt.mode {
+        case .unlock:
+            if noteStore.unlock(prompt.id, passcode: savedPasscode) { dismiss() }
+        case .removeLock:
+            if noteStore.removeLock(prompt.id, passcode: savedPasscode) { dismiss() }
+        case .lock:
+            break
         }
     }
 }

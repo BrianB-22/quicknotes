@@ -25,6 +25,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             .sink { [weak self] enabled in self?.applyGlobalHotkey(enabled: enabled) }
             .store(in: &cancellables)
 
+        // Turning Touch ID off shouldn't leave previously saved passcodes
+        // sitting in the Keychain indefinitely with no way for the user to
+        // know they're still there.
+        settings.$useTouchIDForLockedNotes
+            .dropFirst()
+            .sink { [weak self] enabled in
+                if !enabled { self?.noteStore.wipeAllSavedTouchIDPasscodes() }
+            }
+            .store(in: &cancellables)
+
         settings.checkForUpdates()
     }
 
