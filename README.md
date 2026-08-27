@@ -17,6 +17,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/BrianB-22/quicknotes/releases/latest">
+    <img src="https://img.shields.io/badge/Download-v1.0-blue?style=for-the-badge&logo=apple" alt="Download v1.0" />
+  </a>
+</p>
+
+<p align="center">
   <img src="images/marketing.gif" alt="QuickNotes cycling through notes, links, and settings" width="420" />
 </p>
 
@@ -81,7 +87,19 @@ Notes are stored as plain JSON files in `~/Library/Application Support/QuickNote
 
 ---
 
+## Download
+
+**[⬇ Download QuickNotes v1.0](https://github.com/BrianB-22/quicknotes/releases/latest)**
+
+1. Download the DMG and open it
+2. Drag **QuickNotes** into the **Applications** shortcut in the same window
+3. Launch QuickNotes from Applications (or Spotlight) — look for its icon in the menu bar
+
+This build is signed and notarized by Apple — no security warnings, no exceptions needed.
+
 ## Building from Source
+
+> **Note:** The source code in this repository may include work-in-progress features or changes ahead of the latest release. The DMG in [Releases](https://github.com/BrianB-22/quicknotes/releases) is the stable, signed build — source and releases may not always be in sync.
 
 1. Clone the repo
 2. Open `QuickNotes.xcodeproj` in Xcode
@@ -95,3 +113,5 @@ No external dependencies. No Swift packages to resolve.
 ## About
 
 QuickNotes — part of the same "quick" menu bar app family as [QuickCal](https://github.com/BrianB-22/quickcal).
+
+Interested in other handy utilities like this? Check out [bernacki.me](https://bernacki.me).

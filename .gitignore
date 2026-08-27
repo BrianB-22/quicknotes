@@ -17,6 +17,8 @@ DerivedData/
 build/
 *.o
 *.d
+*.app
+builds/
 
 # macOS
 .DS_Store
