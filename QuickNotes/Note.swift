@@ -18,10 +18,6 @@ enum NoteColorLabel: String, Codable, CaseIterable, Identifiable {
         case .purple: return Color(red: 0.75, green: 0.65, blue: 0.95)
         }
     }
-
-    /// Red doubles as a "starred" label — sorted to the top of the list
-    /// alongside pinned notes, same idea, one fewer menu action.
-    var sortsToTop: Bool { self == .red }
 }
 
 struct Note: Identifiable, Codable {

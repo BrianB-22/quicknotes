@@ -39,7 +39,8 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - **Paste Clipboard as New Note** — from the toolbar, or right-click the menu bar icon to do it without even opening the popover
 - **Copy** the current note straight to the clipboard
 - Search notes by title or content, with a one-click × to clear
-- **Color labels** — five sticky-note colors, plus 🔴 **Red**, which doubles as a star and sorts to the top of the list alongside pinned notes
+- **Color labels** — six sticky-note colors for quick visual scanning
+- **Pin** a note to keep it at the top of the list
 - Relative timestamps ("Just now", "12 minutes ago")
 - **Clickable links** — URLs and dropped file paths are detected automatically; ⌘-click to open
 - **Drag a file or folder** into a note to drop in its path

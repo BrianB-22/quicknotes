@@ -69,9 +69,7 @@ final class NoteStore: ObservableObject {
     }
 
     private func sortOrder(_ lhs: Note, _ rhs: Note) -> Bool {
-        let lhsToTop = lhs.isPinned || (lhs.colorLabel?.sortsToTop ?? false)
-        let rhsToTop = rhs.isPinned || (rhs.colorLabel?.sortsToTop ?? false)
-        if lhsToTop != rhsToTop { return lhsToTop }
+        if lhs.isPinned != rhs.isPinned { return lhs.isPinned }
         return lhs.modifiedAt > rhs.modifiedAt
     }
 
@@ -122,7 +120,6 @@ final class NoteStore: ObservableObject {
         guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
         notes[idx].colorLabel = label
         persist(notes[idx])
-        resort()
     }
 
     // MARK: - Locking
