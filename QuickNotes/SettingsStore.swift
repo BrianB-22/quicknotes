@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AppKit
 import ServiceManagement
 
 enum NoteFontSize: String, CaseIterable, Identifiable {
@@ -82,6 +83,10 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(useTouchIDForLockedNotes, forKey: "com.quicknotes.useTouchIDForLockedNotes") }
     }
 
+    @Published var checkForUpdatesEnabled: Bool = true {
+        didSet { UserDefaults.standard.set(checkForUpdatesEnabled, forKey: "com.quicknotes.checkForUpdatesEnabled") }
+    }
+
     init() {
         if UserDefaults.standard.object(forKey: "com.quicknotes.showTitlePreviewWhileLocked") != nil {
             showTitlePreviewWhileLocked = UserDefaults.standard.bool(forKey: "com.quicknotes.showTitlePreviewWhileLocked")
@@ -100,6 +105,9 @@ final class SettingsStore: ObservableObject {
         if UserDefaults.standard.object(forKey: "com.quicknotes.useTouchIDForLockedNotes") != nil {
             useTouchIDForLockedNotes = UserDefaults.standard.bool(forKey: "com.quicknotes.useTouchIDForLockedNotes")
         }
+        if UserDefaults.standard.object(forKey: "com.quicknotes.checkForUpdatesEnabled") != nil {
+            checkForUpdatesEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.checkForUpdatesEnabled")
+        }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
@@ -110,5 +118,37 @@ final class SettingsStore: ObservableObject {
         } catch {
             print("Launch at login error: \(error)")
         }
+    }
+
+    /// Checks GitHub's latest release once and, if it's newer than this build,
+    /// just opens that release page in the browser — no in-app update flow,
+    /// the user decides there whether to download it.
+    func checkForUpdates() {
+        guard checkForUpdatesEnabled else { return }
+        guard let url = URL(string: "https://api.github.com/repos/BrianB-22/quicknotes/releases/latest") else { return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let tag = json["tag_name"] as? String,
+                  let htmlString = json["html_url"] as? String,
+                  let releaseURL = URL(string: htmlString) else { return }
+            let remote = tag.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
+            let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+            guard Self.isNewer(remote, than: current) else { return }
+            DispatchQueue.main.async {
+                NSWorkspace.shared.open(releaseURL)
+            }
+        }.resume()
+    }
+
+    private static func isNewer(_ remote: String, than current: String) -> Bool {
+        let r = remote.split(separator: ".").compactMap { Int($0) }
+        let c = current.split(separator: ".").compactMap { Int($0) }
+        for i in 0..<max(r.count, c.count) {
+            let rv = i < r.count ? r[i] : 0
+            let cv = i < c.count ? c[i] : 0
+            if rv != cv { return rv > cv }
+        }
+        return false
     }
 }

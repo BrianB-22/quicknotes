@@ -24,6 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             .dropFirst()
             .sink { [weak self] enabled in self?.applyGlobalHotkey(enabled: enabled) }
             .store(in: &cancellables)
+
+        settings.checkForUpdates()
     }
 
     // MARK: - Setup

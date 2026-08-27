@@ -89,12 +89,28 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            HStack {
-                Spacer()
-                Text("QuickNotes \(appVersion)")
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("Check for new versions", isOn: $settings.checkForUpdatesEnabled)
+                Text("On launch, checks GitHub for a newer release. If one exists, opens its download page in your browser — nothing installs automatically.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Spacer()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(spacing: 2) {
+                HStack {
+                    Spacer()
+                    Text("QuickNotes \(appVersion)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                HStack {
+                    Spacer()
+                    Link("bernacki.me", destination: URL(string: "https://bernacki.me")!)
+                        .font(.caption)
+                    Spacer()
+                }
             }
 
             HStack {
