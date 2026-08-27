@@ -304,13 +304,24 @@ struct PasscodeSheet: View {
         .padding(20)
         .frame(width: 300)
         .onAppear {
-            // Only pre-fill for unlocking an already-locked note — you're just
-            // proving you know the existing passcode there, so skipping the
-            // retype is harmless. Locking is choosing a passcode for THIS note;
-            // pre-filling both fields there would let you lock it by hitting
-            // Return without ever having typed anything, silently reusing
-            // whatever passcode a previous note happened to use.
-            if prompt.mode != .lock, let remembered = noteStore.lastUsedPasscode {
+            // Only pre-fill for unlocking/removing a lock on an already-locked
+            // note — you're just proving you know the existing passcode there,
+            // so skipping the retype is harmless. Locking is choosing a
+            // passcode for THIS note; pre-filling both fields there would let
+            // you lock it by hitting Return without ever having typed
+            // anything, silently reusing whatever passcode a previous note
+            // happened to use.
+            //
+            // Different notes can have different passcodes, so blindly
+            // reusing the last one used anywhere isn't just unhelpful when
+            // wrong — it confidently shows a passcode that belongs to some
+            // other note, which then fails on submit. Verify it actually
+            // decrypts THIS note before pre-filling; otherwise leave the field
+            // empty rather than show something misleading.
+            if prompt.mode != .lock,
+               let remembered = noteStore.lastUsedPasscode,
+               let payload = noteStore.notes.first(where: { $0.id == prompt.id })?.encryptedPayload,
+               (try? LockManager.decrypt(payload, passcode: remembered)) != nil {
                 passcode = remembered
             }
         }
