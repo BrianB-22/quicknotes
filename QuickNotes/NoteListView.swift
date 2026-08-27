@@ -133,16 +133,16 @@ private struct NoteRow: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(note.listTitle(showLockedPreview: settings.showTitlePreviewWhileLocked,
-                                         unlockedText: noteStore.decryptedCache[note.id]))
-                        .font(.system(size: settings.noteFontSize.pointSize, weight: .medium))
-                        .lineLimit(1)
                     if note.isPinned {
                         Image(systemName: "pin.fill")
                             .font(.system(size: max(settings.noteFontSize.pointSize - 3, 8)))
                             .foregroundStyle(.secondary)
                             .fixedSize()
                     }
+                    Text(note.listTitle(showLockedPreview: settings.showTitlePreviewWhileLocked,
+                                         unlockedText: noteStore.decryptedCache[note.id]))
+                        .font(.system(size: settings.noteFontSize.pointSize, weight: .medium))
+                        .lineLimit(1)
                 }
                 RelativeTimeText(date: note.modifiedAt)
                     .font(.system(size: max(settings.noteFontSize.pointSize - 2, 9)))
