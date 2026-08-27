@@ -48,7 +48,7 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - **Color labels** — six sticky-note colors for quick visual scanning
 - **Pin** a note to keep it at the top of the list
 - Relative timestamps ("Just now", "12 minutes ago")
-- **Clickable links** — URLs and dropped file paths are detected automatically; ⌘-click to open
+- **Clickable links** — URLs and dropped file paths are detected automatically; click to open
 - **Drag a file or folder** into a note to drop in its path
 
 ### 🔒 Locking - Encrypted Notes

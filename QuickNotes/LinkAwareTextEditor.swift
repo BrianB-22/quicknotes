@@ -2,9 +2,10 @@ import SwiftUI
 import AppKit
 
 /// A plain-text editor that behaves like `TextEditor` but auto-detects URLs and
-/// file paths as clickable links (Cmd-click to open, matching the standard
-/// AppKit convention for editable text views) and accepts dropped files/folders
-/// by inserting their path as text at the drop point.
+/// file paths as clickable links (a plain click opens them, cursor turns into a
+/// pointing hand on hover — AppKit's default handling for `.link`-attributed
+/// text) and accepts dropped files/folders by inserting their path as text at
+/// the drop point.
 struct LinkAwareTextEditor: NSViewRepresentable {
     @Binding var text: String
     var fontSize: CGFloat
