@@ -51,7 +51,7 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - **Clickable links** — URLs and dropped file paths are detected automatically; ⌘-click to open
 - **Drag a file or folder** into a note to drop in its path
 
-### 🔒 Locking
+### 🔒 Locking - Encrypted Notes
 - Lock any individual note with its own passcode — content is encrypted with AES-GCM, key derived with PBKDF2
 - Nothing password-related is stored by default — a wrong passcode simply fails to decrypt, nothing to leak
 - Optional **Touch ID** unlock, backed by a passcode saved in the Keychain behind biometrics (the typed passcode still works as a fallback)
