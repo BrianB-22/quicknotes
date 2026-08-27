@@ -9,6 +9,7 @@ struct NoteListView: View {
     @State private var searchText = ""
     @State private var pendingDeleteID: UUID?
     @State private var versionHistoryPrompt: VersionHistoryPrompt?
+    @State private var deletionNotice: DeletionNotice?
 
     private var filteredNotes: [Note] {
         guard !searchText.isEmpty else { return noteStore.notes }
@@ -129,10 +130,27 @@ struct NoteListView: View {
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                if let id = pendingDeleteID { noteStore.delete(id) }
+                if let id = pendingDeleteID, let note = noteStore.notes.first(where: { $0.id == id }) {
+                    let notice = DeletionNotice(
+                        note: note,
+                        showLockedPreview: settings.showTitlePreviewWhileLocked,
+                        unlockedText: noteStore.decryptedCache[id]
+                    )
+                    noteStore.delete(id)
+                    deletionNotice = notice
+                }
                 pendingDeleteID = nil
             }
             Button("Cancel", role: .cancel) { pendingDeleteID = nil }
+        }
+        .alert(
+            "Moved to Trash",
+            isPresented: Binding(get: { deletionNotice != nil }, set: { if !$0 { deletionNotice = nil } }),
+            presenting: deletionNotice
+        ) { _ in
+            Button("OK") { deletionNotice = nil }
+        } message: { notice in
+            Text("\"\(notice.title)\" was moved to the Trash as \(notice.filename). To restore it, copy the file back into the Notes folder (Settings → Show Notes in Finder…).")
         }
         .onChange(of: noteStore.selectedNoteID) { _, newValue in
             // NoteStore only ever nils this out itself when the selected note
@@ -222,6 +240,20 @@ struct PasscodePrompt: Identifiable {
 
 struct VersionHistoryPrompt: Identifiable {
     let id: UUID
+}
+
+/// Shown after a delete completes, confirming where the note actually went —
+/// `NoteStore.delete` moves the JSON file to the macOS Trash rather than
+/// removing it outright, so this tells the user exactly what to look for if
+/// they want it back.
+struct DeletionNotice {
+    let title: String
+    let filename: String
+
+    init(note: Note, showLockedPreview: Bool, unlockedText: String?) {
+        title = note.listTitle(showLockedPreview: showLockedPreview, unlockedText: unlockedText)
+        filename = "\(note.id.uuidString).json"
+    }
 }
 
 struct PasscodeSheet: View {

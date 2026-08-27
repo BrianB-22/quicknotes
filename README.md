@@ -53,6 +53,7 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - **Save Note As…** — export the current note to a `.txt` or `.md` file anywhere on disk
 - **Markdown preview** — flip a note between plain Text and a read-only rendered MD view (TXT/MD toggle below the editor); in Text mode, a small toolbar inserts Bold/Italic/Code/Heading/Bulleted List/Link syntax at the cursor
 - **Version History** — on by default. Each time you leave a note you've edited (switch away, or close the popover), its previous text is saved so you can recover it later if you accidentally wipe something out. Right-click a note → **Version History…** for a read-only timeline you can scroll through and copy text from (last 30 versions per note). Not automatic restore — you copy what you need and paste it back in yourself. **Locked notes are excluded**: history is only ever kept for a currently-plain note, and locking a note clears any history it had, so a note you've locked never leaves a plaintext trail elsewhere in its file.
+- **Deleting a note moves it to the macOS Trash**, not gone-forever — a confirmation shows the note's name and filename, and it's a normal Finder recovery from there (copy it back into the Notes folder, findable via Settings → Show Notes in Finder…) if you delete the wrong one.
 
 ### 🔒 Locking - Encrypted Notes
 - Lock any individual note with its own passcode — content is encrypted with AES-GCM, key derived with PBKDF2

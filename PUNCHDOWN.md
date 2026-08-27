@@ -73,9 +73,9 @@ Every disk operation is `try?`: `persist()` (NoteStore.swift:67), `loadAll()`'s 
 
 ## 3. Data-Loss / Destructive-Action Concerns
 
-### 3.1 ⚠️ PARTIALLY FIXED — Context-menu Delete is instant and unrecoverable; detail-pane Delete confirms
+### 3.1 ✅ FIXED — Context-menu Delete is instant and unrecoverable; detail-pane Delete confirms
 NoteListView.swift:89 deletes immediately from the right-click menu (no dialog), while the trash button in NoteDetailView goes through a confirmation. Same action, different safety rails — and there is **no undo and no trash** anywhere: `delete()` removes the JSON file on the spot. A slip on the context menu is permanent data loss. Recommend: confirm in both places, or (better, see §6.1) a soft-delete.
-**Fixed:** context-menu Delete now confirms via the same dialog pattern as the detail-pane trash button. **Still open by choice:** no trash/undo — a slip past the confirmation is still permanent (§6.1).
+**Fixed in two passes:** context-menu Delete now confirms via the same dialog pattern as the detail-pane trash button (first pass). Then, per the user's request, `NoteStore.delete` was changed to use `FileManager.trashItem` — moving the note's JSON file to the real macOS Trash instead of removing it outright, no custom in-app trash system needed. A follow-up alert after the confirmation names the note and its filename and points to Settings → Show Notes in Finder… as the restore path. Verified with a standalone probe that `trashItem` preserves the exact filename (UUID-named files never collide) and content.
 
 ### 3.2 ✅ FIXED (Remove Lock only) — There is no way to permanently remove a lock or change a passcode
 Nothing in the codebase ever sets `isLocked = false`. `unlock()` only decrypts into the session cache; `relock()` restores the locked state. Once a note is locked: you cannot convert it back to a plain note, and you cannot change its passcode (locking is guarded by `!notes[idx].isLocked`). The only escape hatch is copy-text-out → delete note → recreate. This is a functional hole, not just a nicety — see §6.2.
@@ -116,7 +116,7 @@ Nothing in the codebase ever sets `isLocked = false`. `unlock()` only decrypts i
 
 Ordered by how much they'd matter, weighed against the app's "disposable, local, no clutter" pitch.
 
-1. ⚠️ **Trash / undo delete.** Delete confirmation shipped (§3.1); the trash/undo half was explicitly declined for this pass and is still the single biggest remaining safety gap. Even a "deleted notes linger in a `.Trash` subfolder for 7 days" scheme keeps the flat-JSON design.
+1. ✅ **Trash / undo delete.** Shipped (§3.1) — turned out simpler than the original "custom `.Trash` subfolder with a 7-day purge" idea: `NoteStore.delete` just calls `FileManager.trashItem`, handing recovery off to the real macOS Trash the user already knows how to use.
 2. ✅ **Remove Lock / Change Passcode.** "Remove Lock…" shipped (§3.2); "Change Passcode…" was not built this pass.
 3. ✅ **Encrypt (or opt-in-only capture) the locked-title snapshot** — shipped as opt-in-only capture (§2.1).
 4. ✅ **Hardware-backed Touch ID** via `SecAccessControl` — shipped (§2.2).

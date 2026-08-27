@@ -32,7 +32,7 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 - Relative timestamp ("Just now", "12 min. ago"), minute granularity, refreshes on a `TimelineView(.periodic(by: 60))` — deliberately not per-second
 - Toolbar: **New Note** (⌘N, also focuses the editor), **Paste Clipboard as New Note**, **Settings**
 - Search field with a one-click **×** to clear; filters by title (locked notes) or content (unlocked notes)
-- Right-click a row: Lock…/Unlock…, **Remove Lock…** (locked notes only — permanently decrypts and converts back to a plain note; see Locking), **Version History…** (plain notes only — see Version History below), Pin/Unpin, **Label** submenu (six colors — red is a plain color, *not* a "sort to top" special case, see below), Delete (confirms before deleting, same dialog as the detail-pane trash button)
+- Right-click a row: Lock…/Unlock…, **Remove Lock…** (locked notes only — permanently decrypts and converts back to a plain note; see Locking), **Version History…** (plain notes only — see Version History below), Pin/Unpin, **Label** submenu (six colors — red is a plain color, *not* a "sort to top" special case, see below), Delete (confirms before deleting, same dialog as the detail-pane trash button — see Delete below)
 - A small pin glyph (leading, before the title) marks pinned notes; a colored dot marks labeled notes
 - Deleting the selected note re-selects the first note from the **currently visible (filtered)** list — not the unfiltered list, which used to leave the list looking empty while a hidden note sat open in the detail pane
 
@@ -66,6 +66,11 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 - **Excluded entirely for any note that is or has been locked**, with no exception for a temporarily-unlocked-for-viewing session — see Locking above and Design Decisions below for why. `lock()` clears `versionHistory` the moment a note is locked; the context-menu item is hidden whenever `isLocked` is true
 - View-only: right-click → **Version History…** opens `VersionHistoryView.swift`, a two-pane timeline (list of past versions newest-first, selected version's full text read-only + Copy to Clipboard). No restore button by design — you copy what you need and paste it back into the note yourself
 - Search does **not** look inside version history — `filteredNotes` only ever matches a note's current text/title, so content that's only in a past version won't surface from the search field; you have to know which note to check and dig through its history manually (left as-is deliberately, see `PUNCHDOWN.md` §6.11 if this gets revisited)
+
+### Delete
+- `NoteStore.delete` moves the note's JSON file to the macOS Trash (`FileManager.trashItem`) rather than removing it outright — recoverable the same way any Finder delete is, no custom in-app trash/undo system needed
+- After the delete confirmation, a follow-up alert names the note and its filename (`<uuid>.json`) and points to Settings → **Show Notes in Finder…** as the restore path — copy the file back into the Notes folder from `~/.Trash`
+- The note's title is captured *before* calling `delete()`, not after — once deleted it's gone from `noteStore.notes`, so there's nothing left to read a title from
 
 ### Settings
 | Setting | Default |

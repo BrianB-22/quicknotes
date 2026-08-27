@@ -8,6 +8,7 @@ struct NoteDetailView: View {
     @EnvironmentObject var settings: SettingsStore
     @State private var passcodePrompt: PasscodePrompt?
     @State private var showingDeleteConfirmation = false
+    @State private var deletionNotice: DeletionNotice?
     @State private var shouldFocusEditor = false
     @State private var pendingFormat: MarkdownFormatAction?
 
@@ -51,9 +52,26 @@ struct NoteDetailView: View {
         }
         .confirmationDialog("Delete this note?", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
-                if let id = selectedNote?.id { noteStore.delete(id) }
+                if let note = selectedNote {
+                    let notice = DeletionNotice(
+                        note: note,
+                        showLockedPreview: settings.showTitlePreviewWhileLocked,
+                        unlockedText: noteStore.decryptedCache[note.id]
+                    )
+                    noteStore.delete(note.id)
+                    deletionNotice = notice
+                }
             }
             Button("Cancel", role: .cancel) {}
+        }
+        .alert(
+            "Moved to Trash",
+            isPresented: Binding(get: { deletionNotice != nil }, set: { if !$0 { deletionNotice = nil } }),
+            presenting: deletionNotice
+        ) { _ in
+            Button("OK") { deletionNotice = nil }
+        } message: { notice in
+            Text("\"\(notice.title)\" was moved to the Trash as \(notice.filename). To restore it, copy the file back into the Notes folder (Settings → Show Notes in Finder…).")
         }
         .onChange(of: noteStore.selectedNoteID) { _, _ in
             shouldFocusEditor = true
