@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="https://github.com/BrianB-22/quicknotes/releases/latest">
-    <img src="https://img.shields.io/badge/Download-v1.0-blue?style=for-the-badge&logo=apple" alt="Download v1.0" />
+    <img src="https://img.shields.io/badge/Download-v1.2-blue?style=for-the-badge&logo=apple" alt="Download v1.2" />
   </a>
 </p>
 
@@ -50,12 +50,15 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - Relative timestamps ("Just now", "12 minutes ago")
 - **Clickable links** — URLs and dropped file paths are detected automatically; click to open
 - **Drag a file or folder** into a note to drop in its path
+- **Save Note As…** — export the current note to a `.txt` or `.md` file anywhere on disk
+- **Markdown preview** — flip a note between plain Text and a read-only rendered MD view (TXT/MD toggle below the editor); in Text mode, a small toolbar inserts Bold/Italic/Code/Heading/Bulleted List/Link syntax at the cursor
 - **Version History** — on by default. Each time you leave a note you've edited (switch away, or close the popover), its previous text is saved so you can recover it later if you accidentally wipe something out. Right-click a note → **Version History…** for a read-only timeline you can scroll through and copy text from (last 30 versions per note). Not automatic restore — you copy what you need and paste it back in yourself. **Locked notes are excluded**: history is only ever kept for a currently-plain note, and locking a note clears any history it had, so a note you've locked never leaves a plaintext trail elsewhere in its file.
 
 ### 🔒 Locking - Encrypted Notes
 - Lock any individual note with its own passcode — content is encrypted with AES-GCM, key derived with PBKDF2
 - Nothing password-related is stored by default — a wrong passcode simply fails to decrypt, nothing to leak
 - Configurable **auto re-lock**: Immediate, 2/5/10 minutes, or until QuickNotes quits
+- **Remove Lock…** — right-click a locked note to permanently decrypt it back into a normal note, after verifying the passcode
 - Optional first-line preview for locked notes in the list (off by default — locked notes show a generic label unless you turn this on)
 - Clear warnings when locking a note: there's no passcode recovery, and any linked files are *not* themselves encrypted — only the note's text is
 
@@ -89,7 +92,7 @@ Notes are stored as plain JSON files in `~/Library/Application Support/QuickNote
 
 ## Download
 
-**[⬇ Download QuickNotes v1.0](https://github.com/BrianB-22/quicknotes/releases/latest)**
+**[⬇ Download QuickNotes v1.2](https://github.com/BrianB-22/quicknotes/releases/latest)**
 
 1. Download the DMG and open it
 2. Drag **QuickNotes** into the **Applications** shortcut in the same window
