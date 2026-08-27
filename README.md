@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="https://github.com/BrianB-22/quicknotes/releases/latest">
-    <img src="https://img.shields.io/badge/Download-v1.2-blue?style=for-the-badge&logo=apple" alt="Download v1.2" />
+    <img src="https://img.shields.io/badge/Download-v1.3-blue?style=for-the-badge&logo=apple" alt="Download v1.3" />
   </a>
 </p>
 
@@ -93,7 +93,7 @@ Notes are stored as plain JSON files in `~/Library/Application Support/QuickNote
 
 ## Download
 
-**[⬇ Download QuickNotes v1.2](https://github.com/BrianB-22/quicknotes/releases/latest)**
+**[⬇ Download QuickNotes v1.3](https://github.com/BrianB-22/quicknotes/releases/latest)**
 
 1. Download the DMG and open it
 2. Drag **QuickNotes** into the **Applications** shortcut in the same window
