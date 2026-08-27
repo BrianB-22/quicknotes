@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="images/marketing1.png" alt="QuickNotes list and detail view" width="420" />
+  <img src="images/marketing.gif" alt="QuickNotes cycling through notes, links, and settings" width="420" />
 </p>
 
 ---
@@ -45,10 +45,6 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - **Clickable links** — URLs and dropped file paths are detected automatically; ⌘-click to open
 - **Drag a file or folder** into a note to drop in its path
 
-<p align="center">
-  <img src="images/marketing2.png" alt="Clickable links in a note" width="420" />
-</p>
-
 ### 🔒 Locking
 - Lock any individual note with its own passcode — content is encrypted with AES-GCM, key derived with PBKDF2
 - Nothing password-related is stored by default — a wrong passcode simply fails to decrypt, nothing to leak
@@ -69,10 +65,6 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 | Unlock Notes with Touch ID | Off *(only shown on Macs with Touch ID)* |
 
 A "?" button in Settings lists all keyboard shortcuts.
-
-<p align="center">
-  <img src="images/marketing3.png" alt="QuickNotes settings" width="420" />
-</p>
 
 ---
 
