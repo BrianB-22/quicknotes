@@ -69,15 +69,20 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if BiometricAuth.isAvailable {
-                VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Unlock notes with Touch ID", isOn: $settings.useTouchIDForLockedNotes)
-                    Text("Saves a note's passcode in the macOS Keychain behind Touch ID, so you can unlock without typing it. The passcode is still required as a fallback.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("Keep version history", isOn: $settings.versionHistoryEnabled)
+                Text("Saves a note's previous text each time you leave it after editing, so you can recover it from Version History (right-click a note) if you accidentally wipe something out. Locked notes are excluded — history is cleared when a note is locked.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+
+            // Touch ID unlock is shelved as a future feature — SecAccessControl-protected
+            // Keychain items need a `keychain-access-groups` entitlement that wasn't wired
+            // up correctly, and even after fixing that it kept throwing errors. Rather than
+            // ship a broken/confusing option, the toggle is hidden until this is revisited;
+            // see the "Touch ID" entries in PUNCHDOWN.md and SPEC.md's Design Decisions for
+            // the full investigation. Passcode-only locking is unaffected.
 
             VStack(alignment: .leading, spacing: 4) {
                 Button("Show Notes in Finder…") {

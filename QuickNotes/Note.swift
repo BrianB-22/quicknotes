@@ -6,6 +6,16 @@ enum NotePreviewMode: String, Codable {
     case markdown
 }
 
+/// A single past snapshot of a plain note's text, kept for accidental-wipe
+/// recovery. `id` is `savedAt` rather than a stored UUID — checkpoints are
+/// created seconds-to-minutes apart at most, so it's unique enough for
+/// `Identifiable` without an extra field to persist and decode.
+struct NoteVersion: Codable, Identifiable {
+    var id: Date { savedAt }
+    let text: String
+    let savedAt: Date
+}
+
 enum NoteColorLabel: String, Codable, CaseIterable, Identifiable {
     case red, yellow, pink, blue, green, purple
 
@@ -53,10 +63,16 @@ struct Note: Identifiable, Codable {
     /// disk that predates this field.
     var previewMode: NotePreviewMode?
 
+    /// Nil for locked notes and for plain notes with no history yet. Only ever
+    /// populated for a currently-plain note — cleared the moment a note is
+    /// locked, so a locked note's file never holds plaintext content outside
+    /// its encrypted payload. See `NoteStore.checkpointVersion` and `lock()`.
+    var versionHistory: [NoteVersion]?
+
     init(id: UUID, createdAt: Date, modifiedAt: Date, isPinned: Bool = false,
          isLocked: Bool = false, colorLabel: NoteColorLabel? = nil, plainText: String? = nil,
          encryptedPayload: EncryptedPayload? = nil, lockedTitleSnapshot: String? = nil,
-         previewMode: NotePreviewMode? = nil) {
+         previewMode: NotePreviewMode? = nil, versionHistory: [NoteVersion]? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.modifiedAt = modifiedAt
@@ -67,6 +83,7 @@ struct Note: Identifiable, Codable {
         self.encryptedPayload = encryptedPayload
         self.lockedTitleSnapshot = lockedTitleSnapshot
         self.previewMode = previewMode
+        self.versionHistory = versionHistory
     }
 
     var effectivePreviewMode: NotePreviewMode {

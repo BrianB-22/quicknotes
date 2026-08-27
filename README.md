@@ -50,11 +50,11 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - Relative timestamps ("Just now", "12 minutes ago")
 - **Clickable links** — URLs and dropped file paths are detected automatically; click to open
 - **Drag a file or folder** into a note to drop in its path
+- **Version History** — on by default. Each time you leave a note you've edited (switch away, or close the popover), its previous text is saved so you can recover it later if you accidentally wipe something out. Right-click a note → **Version History…** for a read-only timeline you can scroll through and copy text from (last 30 versions per note). Not automatic restore — you copy what you need and paste it back in yourself. **Locked notes are excluded**: history is only ever kept for a currently-plain note, and locking a note clears any history it had, so a note you've locked never leaves a plaintext trail elsewhere in its file.
 
 ### 🔒 Locking - Encrypted Notes
 - Lock any individual note with its own passcode — content is encrypted with AES-GCM, key derived with PBKDF2
 - Nothing password-related is stored by default — a wrong passcode simply fails to decrypt, nothing to leak
-- Optional **Touch ID** unlock, backed by a passcode saved in the Keychain behind biometrics (the typed passcode still works as a fallback)
 - Configurable **auto re-lock**: Immediate, 2/5/10 minutes, or until QuickNotes quits
 - Optional first-line preview for locked notes in the list (off by default — locked notes show a generic label unless you turn this on)
 - Clear warnings when locking a note: there's no passcode recovery, and any linked files are *not* themselves encrypted — only the note's text is
@@ -68,7 +68,7 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 | Note Text Size | Medium *(Small / Medium / Large)* |
 | Show Note Preview While Locked | Off |
 | Auto Re-lock Unlocked Notes | Immediate *(2 / 5 / 10 min / Until app quits)* |
-| Unlock Notes with Touch ID | Off *(only shown on Macs with Touch ID)* |
+| Keep Version History | On |
 
 A "?" button in Settings lists all keyboard shortcuts.
 

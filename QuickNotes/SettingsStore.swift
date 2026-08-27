@@ -87,6 +87,13 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(checkForUpdatesEnabled, forKey: "com.quicknotes.checkForUpdatesEnabled") }
     }
 
+    /// When on (default), leaving a plain note you've edited saves its previous
+    /// text as a recoverable version. Locked notes are excluded regardless of
+    /// this setting — see `NoteStore.checkpointVersion`.
+    @Published var versionHistoryEnabled: Bool = true {
+        didSet { UserDefaults.standard.set(versionHistoryEnabled, forKey: "com.quicknotes.versionHistoryEnabled") }
+    }
+
     init() {
         if UserDefaults.standard.object(forKey: "com.quicknotes.showTitlePreviewWhileLocked") != nil {
             showTitlePreviewWhileLocked = UserDefaults.standard.bool(forKey: "com.quicknotes.showTitlePreviewWhileLocked")
@@ -102,11 +109,14 @@ final class SettingsStore: ObservableObject {
         if UserDefaults.standard.object(forKey: "com.quicknotes.globalHotkeyEnabled") != nil {
             globalHotkeyEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.globalHotkeyEnabled")
         }
-        if UserDefaults.standard.object(forKey: "com.quicknotes.useTouchIDForLockedNotes") != nil {
-            useTouchIDForLockedNotes = UserDefaults.standard.bool(forKey: "com.quicknotes.useTouchIDForLockedNotes")
-        }
+        // Touch ID is shelved as a future feature (see SettingsView.swift) — deliberately
+        // not restoring any previously-saved `true` value here, so it stays off even for
+        // an install that had it enabled before this was shelved.
         if UserDefaults.standard.object(forKey: "com.quicknotes.checkForUpdatesEnabled") != nil {
             checkForUpdatesEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.checkForUpdatesEnabled")
+        }
+        if UserDefaults.standard.object(forKey: "com.quicknotes.versionHistoryEnabled") != nil {
+            versionHistoryEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.versionHistoryEnabled")
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }

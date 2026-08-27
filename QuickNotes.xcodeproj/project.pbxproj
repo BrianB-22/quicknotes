@@ -24,6 +24,7 @@
 		BB100015 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100016 /* HotkeyManager.swift */; };
 		BB100016 /* LinkAwareTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100017 /* LinkAwareTextEditor.swift */; };
 		BB100017 /* MarkdownPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100018 /* MarkdownPreviewView.swift */; };
+		BB100018 /* VersionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100020 /* VersionHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +46,8 @@
 		AA100016 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		AA100017 /* LinkAwareTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkAwareTextEditor.swift; sourceTree = "<group>"; };
 		AA100018 /* MarkdownPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownPreviewView.swift; sourceTree = "<group>"; };
+		AA100019 /* QuickNotes.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuickNotes.entitlements; sourceTree = "<group>"; };
+		AA100020 /* VersionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionHistoryView.swift; sourceTree = "<group>"; };
 		CC100005 /* QuickNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -86,8 +89,10 @@
 				AA100016 /* HotkeyManager.swift */,
 				AA100017 /* LinkAwareTextEditor.swift */,
 				AA100018 /* MarkdownPreviewView.swift */,
+				AA100020 /* VersionHistoryView.swift */,
 				AA100012 /* Assets.xcassets */,
 				AA100011 /* Info.plist */,
+				AA100019 /* QuickNotes.entitlements */,
 			);
 			path = QuickNotes;
 			sourceTree = "<group>";
@@ -185,6 +190,7 @@
 				BB100015 /* HotkeyManager.swift in Sources */,
 				BB100016 /* LinkAwareTextEditor.swift in Sources */,
 				BB100017 /* MarkdownPreviewView.swift in Sources */,
+				BB100018 /* VersionHistoryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -291,7 +297,7 @@
 		CC100011 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_ENTITLEMENTS = QuickNotes/QuickNotes.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -318,7 +324,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				AUTOMATION_APPLE_EVENTS = NO;
-				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_ENTITLEMENTS = QuickNotes/QuickNotes.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;

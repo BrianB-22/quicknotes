@@ -10,15 +10,25 @@ final class NoteStore: ObservableObject {
     @Published var notes: [Note] = []
     @Published var selectedNoteID: UUID? {
         didSet {
-            guard let old = oldValue, old != selectedNoteID else { return }
-            if settings.autoRelockDelay == .immediate {
-                relock(old)
+            if let old = oldValue, old != selectedNoteID {
+                if settings.autoRelockDelay == .immediate {
+                    relock(old)
+                }
+                checkpointVersion(for: old)
+                // Re-sort here, once, when you actually leave a note — not on every
+                // keystroke while editing it (see updateText). Re-sorting the whole
+                // list on every character was churning the sidebar's List constantly
+                // while typing, which could eat clicks meant for other rows.
+                resort()
             }
-            // Re-sort here, once, when you actually leave a note — not on every
-            // keystroke while editing it (see updateText). Re-sorting the whole
-            // list on every character was churning the sidebar's List constantly
-            // while typing, which could eat clicks meant for other rows.
-            resort()
+            // Seed the baseline for whatever's now selected (including the very
+            // first selection at launch) so a later checkpoint has something to
+            // diff against. A just-deleted old note simply won't be found by
+            // checkpointVersion above, since delete() removes it from `notes`
+            // before nil-ing selectedNoteID.
+            if let newID = selectedNoteID {
+                editSessionBaselines[newID] = notes.first(where: { $0.id == newID })?.plainText
+            }
         }
     }
 
@@ -39,6 +49,10 @@ final class NoteStore: ObservableObject {
     /// derive each time — that alone was the dominant per-keystroke cost.
     private var sessionKeys: [UUID: SymmetricKey] = [:]
     private var relockTimers: [UUID: Timer] = [:]
+    /// A plain note's text as of when it was last selected — the baseline
+    /// `checkpointVersion` diffs against to decide whether leaving it should
+    /// save a version. Never populated for a locked note.
+    private var editSessionBaselines: [UUID: String] = [:]
     /// Keeps the process from being App Nap–throttled while a relock timer is
     /// pending — this app has no visible window most of the time (popover
     /// closed), which is exactly the profile App Nap targets for deferral.
@@ -128,6 +142,7 @@ final class NoteStore: ObservableObject {
         decryptedCache[id] = nil
         sessionPasscodes[id] = nil
         sessionKeys[id] = nil
+        editSessionBaselines[id] = nil
         KeychainStore.deletePasscode(for: id)
         try? FileManager.default.removeItem(at: fileURL(for: id))
         // Picking a replacement is left to the view layer (see NoteListView),
@@ -166,12 +181,20 @@ final class NoteStore: ObservableObject {
         // on — this is content escaping encryption onto disk in plaintext, so
         // it should never be written just because a lock happened to occur.
         notes[idx].lockedTitleSnapshot = settings.showTitlePreviewWhileLocked ? firstLine(of: plainText) : nil
+        // Same reasoning as the title snapshot above: history accumulated while
+        // this note was plain is still plaintext sitting in its JSON file. Once
+        // it's locked, that file should hold nothing readable outside the
+        // encrypted payload — so any history it had is cleared here, not kept
+        // around "just in case." Versioning starts fresh if it's ever unlocked
+        // for good via `removeLock`.
+        notes[idx].versionHistory = nil
         notes[idx].plainText = nil
         notes[idx].isLocked = true
         notes[idx].modifiedAt = Date()
         decryptedCache[id] = nil
         sessionPasscodes[id] = nil
         sessionKeys[id] = nil
+        editSessionBaselines[id] = nil
         lastUsedPasscode = passcode
         persist(notes[idx])
     }
@@ -288,6 +311,11 @@ final class NoteStore: ObservableObject {
     /// is a background app that keeps running.
     func popoverDidClose() {
         lastUsedPasscode = nil
+        // Closing the popover without switching notes first would otherwise
+        // skip the checkpoint that normally happens in selectedNoteID's didSet.
+        if let id = selectedNoteID {
+            checkpointVersion(for: id)
+        }
         if settings.autoRelockDelay == .immediate {
             relockAll()
         }
@@ -324,6 +352,35 @@ final class NoteStore: ObservableObject {
     private func firstLine(of text: String) -> String {
         let line = text.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? ""
         return line.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: - Version history
+
+    private static let maxVersionsPerNote = 30
+
+    /// Saves `id`'s text as of when it was last selected (its `editSessionBaselines`
+    /// entry) as a recoverable version, if it actually changed since then. Called
+    /// when leaving a note (switching away, or closing the popover) rather than
+    /// per keystroke — a version represents "how the note looked before this
+    /// editing session," not a full undo log. No-ops for a locked note (never
+    /// populated a baseline to begin with) or a just-deleted one (no longer in
+    /// `notes`).
+    private func checkpointVersion(for id: UUID) {
+        guard settings.versionHistoryEnabled,
+              let idx = notes.firstIndex(where: { $0.id == id }),
+              !notes[idx].isLocked,
+              let baseline = editSessionBaselines[id],
+              let current = notes[idx].plainText,
+              current != baseline else { return }
+
+        var history = notes[idx].versionHistory ?? []
+        history.append(NoteVersion(text: baseline, savedAt: Date()))
+        if history.count > Self.maxVersionsPerNote {
+            history.removeFirst(history.count - Self.maxVersionsPerNote)
+        }
+        notes[idx].versionHistory = history
+        persist(notes[idx])
+        editSessionBaselines[id] = current
     }
 
     // MARK: - Storage location

@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import os
 
 /// Stores a per-note passcode in the macOS Keychain so Touch ID can stand in for
 /// typing it. The item itself is biometry-gated via `SecAccessControl` — reading
@@ -7,6 +8,7 @@ import Security
 /// the Secure Enclave, not just an app-side check before the read.
 enum KeychainStore {
     private static let service = "com.quicknotes.notepasscode"
+    private static let logger = Logger(subsystem: "com.quicknotes", category: "keychain")
 
     static func save(passcode: String, for noteID: UUID) {
         let account = noteID.uuidString
@@ -23,12 +25,19 @@ enum KeychainStore {
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             .biometryCurrentSet,
             &accessError
-        ) else { return }
+        ) else {
+            let description = accessError?.takeRetainedValue().localizedDescription ?? "unknown error"
+            logger.error("SecAccessControlCreateWithFlags failed for \(noteID, privacy: .public): \(description, privacy: .public)")
+            return
+        }
 
         var attributes = baseQuery
         attributes[kSecValueData as String] = Data(passcode.utf8)
         attributes[kSecAttrAccessControl as String] = access
-        SecItemAdd(attributes as CFDictionary, nil)
+        let status = SecItemAdd(attributes as CFDictionary, nil)
+        if status != errSecSuccess {
+            logger.error("SecItemAdd failed for \(noteID, privacy: .public): OSStatus \(status, privacy: .public)")
+        }
     }
 
     /// Triggers the system Touch ID prompt as part of the Keychain read itself
@@ -45,7 +54,10 @@ enum KeychainStore {
         ]
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        guard status == errSecSuccess, let data = result as? Data else {
+            logger.error("loadPasscode failed for \(noteID, privacy: .public): OSStatus \(status, privacy: .public)")
+            return nil
+        }
         return String(data: data, encoding: .utf8)
     }
 
@@ -63,6 +75,9 @@ enum KeychainStore {
         ]
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            logger.error("hasPasscode query failed for \(noteID, privacy: .public): OSStatus \(status, privacy: .public)")
+        }
         return status == errSecSuccess
     }
 

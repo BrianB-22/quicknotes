@@ -8,6 +8,7 @@ struct NoteListView: View {
     @State private var passcodePrompt: PasscodePrompt?
     @State private var searchText = ""
     @State private var pendingDeleteID: UUID?
+    @State private var versionHistoryPrompt: VersionHistoryPrompt?
 
     private var filteredNotes: [Note] {
         guard !searchText.isEmpty else { return noteStore.notes }
@@ -89,6 +90,13 @@ struct NoteListView: View {
                                 Button("Remove Lock…") {
                                     passcodePrompt = PasscodePrompt(id: note.id, mode: .removeLock)
                                 }
+                            } else {
+                                // Locked notes (including one currently unlocked-for-viewing)
+                                // never have history under the versioning rules — see
+                                // NoteStore.checkpointVersion — so there's nothing to show.
+                                Button("Version History…") {
+                                    versionHistoryPrompt = VersionHistoryPrompt(id: note.id)
+                                }
                             }
                             Button(note.isPinned ? "Unpin" : "Pin") {
                                 noteStore.togglePin(note.id)
@@ -111,6 +119,9 @@ struct NoteListView: View {
         }
         .sheet(item: $passcodePrompt) { prompt in
             PasscodeSheet(prompt: prompt).environmentObject(noteStore).environmentObject(settings)
+        }
+        .sheet(item: $versionHistoryPrompt) { prompt in
+            VersionHistoryView(noteID: prompt.id).environmentObject(noteStore)
         }
         .confirmationDialog(
             "Delete this note?",
@@ -207,6 +218,10 @@ struct PasscodePrompt: Identifiable {
     enum Mode { case lock, unlock, removeLock }
     let id: UUID
     let mode: Mode
+}
+
+struct VersionHistoryPrompt: Identifiable {
+    let id: UUID
 }
 
 struct PasscodeSheet: View {
@@ -333,15 +348,31 @@ struct PasscodeSheet: View {
     /// already triggers the system's own Touch ID prompt — no separate
     /// `BiometricAuth` pre-check here, or the user would see two prompts back
     /// to back.
+    ///
+    /// `SecItemCopyMatching` is a synchronous, blocking call, and against a
+    /// `SecAccessControl`-protected item it blocks the calling thread for as
+    /// long as the system Touch ID sheet is up. Calling it directly from this
+    /// button action (main thread) froze the entire app — clicks stopped
+    /// registering anywhere, not just in this sheet — whenever that system
+    /// prompt didn't get input focus cleanly. Dispatching the read to a
+    /// background queue keeps the main thread (and the rest of the UI) free
+    /// regardless of what the system prompt does; only the resulting note-store
+    /// mutation hops back to main, since `NoteStore` publishes `@Published`
+    /// state that must be touched there.
     private func unlockWithTouchID() {
-        guard let savedPasscode = KeychainStore.loadPasscode(for: prompt.id) else { return }
-        switch prompt.mode {
-        case .unlock:
-            if noteStore.unlock(prompt.id, passcode: savedPasscode) { dismiss() }
-        case .removeLock:
-            if noteStore.removeLock(prompt.id, passcode: savedPasscode) { dismiss() }
-        case .lock:
-            break
+        DispatchQueue.global(qos: .userInitiated).async {
+            let savedPasscode = KeychainStore.loadPasscode(for: prompt.id)
+            DispatchQueue.main.async {
+                guard let savedPasscode else { return }
+                switch prompt.mode {
+                case .unlock:
+                    if noteStore.unlock(prompt.id, passcode: savedPasscode) { dismiss() }
+                case .removeLock:
+                    if noteStore.removeLock(prompt.id, passcode: savedPasscode) { dismiss() }
+                case .lock:
+                    break
+                }
+            }
         }
     }
 }
