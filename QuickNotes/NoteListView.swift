@@ -250,9 +250,14 @@ struct PasscodeSheet: View {
         .padding(20)
         .frame(width: 300)
         .onAppear {
-            if let remembered = noteStore.lastUsedPasscode {
+            // Only pre-fill for unlocking an already-locked note — you're just
+            // proving you know the existing passcode there, so skipping the
+            // retype is harmless. Locking is choosing a passcode for THIS note;
+            // pre-filling both fields there would let you lock it by hitting
+            // Return without ever having typed anything, silently reusing
+            // whatever passcode a previous note happened to use.
+            if prompt.mode == .unlock, let remembered = noteStore.lastUsedPasscode {
                 passcode = remembered
-                if prompt.mode == .lock { confirmPasscode = remembered }
             }
         }
     }
