@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/icon.png" width="128" alt="QuickNotes icon" />
+  <img src="images/icon2.png" width="128" alt="QuickNotes icon" />
 </p>
 
 <h1 align="center">QuickNotes</h1>
