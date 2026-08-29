@@ -9,15 +9,60 @@ struct VersionHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     let noteID: UUID
 
-    @State private var selectedVersionID: Date?
+    @State private var selectedEntryID: String?
 
-    private var versions: [NoteVersion] {
-        let note = noteStore.notes.first(where: { $0.id == noteID })
-        return (note?.versionHistory ?? []).sorted { $0.savedAt > $1.savedAt }
+    /// A row in the timeline — either the note's live text right now (always
+    /// shown first, tagged "(Current)", so it's easy to compare against past
+    /// versions without leaving the sheet) or an actual saved `NoteVersion`.
+    private enum HistoryEntry: Identifiable {
+        case current(text: String, modifiedAt: Date)
+        case past(NoteVersion)
+
+        var id: String {
+            switch self {
+            case .current: return "current"
+            case .past(let version): return version.savedAt.ISO8601Format()
+            }
+        }
+
+        var text: String {
+            switch self {
+            case .current(let text, _): return text
+            case .past(let version): return version.text
+            }
+        }
+
+        var savedAt: Date {
+            switch self {
+            case .current(_, let modifiedAt): return modifiedAt
+            case .past(let version): return version.savedAt
+            }
+        }
+
+        var isCurrent: Bool {
+            if case .current = self { return true }
+            return false
+        }
     }
 
-    private var selectedVersion: NoteVersion? {
-        versions.first(where: { $0.id == selectedVersionID }) ?? versions.first
+    private var note: Note? {
+        noteStore.notes.first(where: { $0.id == noteID })
+    }
+
+    private var versions: [NoteVersion] {
+        (note?.versionHistory ?? []).sorted { $0.savedAt > $1.savedAt }
+    }
+
+    /// Current text is only prepended when there's at least one past version
+    /// to compare it against — with none, the empty state below is more
+    /// useful than a solo "(Current)" row with nothing to diff against.
+    private var entries: [HistoryEntry] {
+        guard let note, !versions.isEmpty else { return [] }
+        return [.current(text: note.plainText ?? "", modifiedAt: note.modifiedAt)] + versions.map(HistoryEntry.past)
+    }
+
+    private var selectedEntry: HistoryEntry? {
+        entries.first(where: { $0.id == selectedEntryID }) ?? entries.first
     }
 
     var body: some View {
@@ -66,31 +111,49 @@ struct VersionHistoryView: View {
     }
 
     private var versionList: some View {
-        List(versions, selection: $selectedVersionID) { version in
-            VStack(alignment: .leading, spacing: 2) {
-                Text(version.savedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(.system(size: 13, weight: .medium))
-                Text(firstLine(of: version.text))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            .padding(.vertical, 2)
-            .tag(version.id)
+        List(entries, selection: $selectedEntryID) { entry in
+            row(for: entry).tag(entry.id)
         }
         .listStyle(.sidebar)
     }
 
+    private func row(for entry: HistoryEntry) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                Text(entry.savedAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.system(size: 13, weight: .medium))
+                if entry.isCurrent {
+                    Text("(Current)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Text(firstLine(of: entry.text))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.vertical, 2)
+    }
+
     @ViewBuilder
     private var detail: some View {
-        if let selectedVersion {
+        if let selectedEntry {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text(selectedVersion.savedAt.formatted(date: .long, time: .shortened))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Text(selectedEntry.savedAt.formatted(date: .long, time: .shortened))
+                        if selectedEntry.isCurrent {
+                            Text("(Current)")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                     Spacer()
-                    Button(action: { copyToClipboard(selectedVersion.text) }) {
+
+                    Button(action: { copyToClipboard(selectedEntry.text) }) {
                         Label("Copy", systemImage: "doc.on.doc")
                     }
                     .buttonStyle(.borderless)
@@ -100,7 +163,7 @@ struct VersionHistoryView: View {
                 Divider()
 
                 ScrollView {
-                    Text(selectedVersion.text)
+                    Text(selectedEntry.text)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)

@@ -127,6 +127,8 @@ Ordered by how much they'd matter, weighed against the app's "disposable, local,
 9. **Periodic update check** for long-running instances (§5.11). Still open.
 10. **Word/character count** in the format bar's empty right side — cheap, on-theme. Still open.
 11. **Search through version history.** `filteredNotes` only ever checks a note's *current* text/title — never `versionHistory` — so content that got wiped out and only survives in a past version can't be found by search; you have to already know (or guess) which note to check, then dig through its Version History manually. Left as-is for now (user's call, 2026-08-27) — noted here as a candidate if the feature gets revisited.
+12. **Manual reorder / drag-to-position in the note list** — right now sort is strictly pinned-then-modified; some people want to hand-arrange a short list instead. Still open.
+13. **Auto-continue list/checklist on Enter.** Pressing Enter on a `- [ ] task` or `- item` line doesn't carry the prefix to the next line — you have to retype `- [ ] ` (or `- `) every time. Natural complement to the interactive-checkbox feature (§checklists, shipped 2026-08-27): a `NSTextView` keystroke intercept in `LinkAwareTextEditor` that detects the current line starts with a list/checklist marker and inserts the same marker on the new line. Still open.
 
 ---
 

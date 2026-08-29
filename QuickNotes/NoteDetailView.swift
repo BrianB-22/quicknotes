@@ -27,7 +27,7 @@ struct NoteDetailView: View {
                     } else {
                         Group {
                             if note.effectivePreviewMode == .markdown {
-                                MarkdownPreviewView(text: currentText(for: note), fontSize: settings.noteFontSize.pointSize)
+                                MarkdownPreviewView(text: textBinding(for: note), fontSize: settings.noteFontSize.pointSize)
                             } else {
                                 LinkAwareTextEditor(
                                     text: textBinding(for: note),
@@ -198,9 +198,10 @@ struct NoteDetailView: View {
                 formatButton("chevron.left.forwardslash.chevron.right", action: .code, help: "Code")
                 formatButton("textformat.size", action: .heading, help: "Heading")
                 formatButton("list.bullet", action: .bulletList, help: "Bulleted List")
+                formatButton("checklist", action: .checklist, help: "Checklist Item")
                 formatButton("link", action: .link, help: "Link")
             } else {
-                Text("MD is Read-Only")
+                Text("Read-only — checkboxes are tappable")
                     .font(.system(size: max(settings.noteFontSize.pointSize - 3, 9)))
                     .foregroundStyle(.secondary)
             }

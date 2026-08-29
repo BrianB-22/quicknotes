@@ -18,6 +18,7 @@ enum MarkdownFormatAction: Equatable {
     static let code = MarkdownFormatAction.wrap(prefix: "`", suffix: "`", placeholder: "code")
     static let heading = MarkdownFormatAction.linePrefix("# ", placeholder: "Heading")
     static let bulletList = MarkdownFormatAction.linePrefix("- ", placeholder: "list item")
+    static let checklist = MarkdownFormatAction.linePrefix("- [ ] ", placeholder: "task")
     static let link = MarkdownFormatAction.wrap(prefix: "[", suffix: "](https://)", placeholder: "link text")
 }
 
