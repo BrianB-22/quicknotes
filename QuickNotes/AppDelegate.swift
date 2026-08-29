@@ -104,6 +104,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func showPopover(from button: NSStatusBarButton) {
+        // An LSUIElement (accessory) app isn't the frontmost app just because
+        // its status-item button was clicked — that action fires independent
+        // of app activation, which is why the icon reliably toggles the
+        // popover open/closed even when this is skipped. But without actually
+        // activating the app, the popover's own content view hierarchy isn't
+        // guaranteed to be the one receiving real mouse events: it can show
+        // fully rendered yet silently swallow every click until something
+        // (e.g. relaunching) forces activation. `.makeKey()` alone isn't
+        // enough — it makes the window key within our app, but doesn't make
+        // our app the active one at the WindowServer level.
+        NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
     }

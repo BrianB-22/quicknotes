@@ -42,6 +42,10 @@ LinkAwareTextEditor.swift multi-line prefix path: `addedLength = prefix.length *
 `SettingsStore.isNewer` (SettingsStore.swift:144): a tag like `v1.2-beta` splits to `["1", "2-beta"]`, `Int("2-beta")` is nil and gets **dropped** by `compactMap`, so it compares as `1` — i.e. `1.2-beta` reads as older than `1.1`. Harmless as long as releases are plain `vX.Y`, but a footgun the day a pre-release tag is published as "latest."
 **Fixed:** takes each component's leading numeric prefix instead of dropping non-numeric components outright, preserving positional alignment. Verified against 6 cases including the original bug case.
 
+### 1.9 ✅ FIXED — Popover sometimes opens but ignores every click *(user-reported, 2026-08-29)*
+`AppDelegate.showPopover(from:)` called `popover.show(...)` and `.makeKey()` on the content window, but never called `NSApp.activate(ignoringOtherApps: true)`. For an `LSUIElement` (accessory) app, the status-item button's click action fires independent of app activation — which is why clicking the tray icon reliably kept toggling the popover open/closed even while broken — but without actually activating the app, the popover's content view hierarchy wasn't guaranteed to be the thing actually receiving mouse events at the WindowServer level. Symptom matched exactly: popover visibly opens, every click inside is silently swallowed, and only quitting and relaunching recovered it (consistent with the app never having become properly active in that launch). Same root-cause class already flagged for the Save/About panels in §5.1 — just never applied to the popover's own show path.
+**Fixed:** added `NSApp.activate(ignoringOtherApps: true)` at the top of `showPopover(from:)`, before `.show(...)`. Covers both entry points that call it (icon click and the ⌥N global hotkey).
+
 ---
 
 ## 2. Security & Privacy Concerns
