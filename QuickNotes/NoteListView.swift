@@ -152,6 +152,13 @@ struct NoteListView: View {
         } message: { notice in
             Text("\"\(notice.title)\" was moved to the Trash as \(notice.filename). To restore it, copy the file back into the Notes folder (Settings → Show Notes in Finder…).")
         }
+        // See NoteStore.popoverCloseTick.
+        .onChange(of: noteStore.popoverCloseTick) { _, _ in
+            passcodePrompt = nil
+            versionHistoryPrompt = nil
+            pendingDeleteID = nil
+            deletionNotice = nil
+        }
         .onChange(of: noteStore.selectedNoteID) { _, newValue in
             // NoteStore only ever nils this out itself when the selected note
             // was actually deleted (never just hidden by the search filter), so

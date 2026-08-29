@@ -16,5 +16,12 @@ struct ContentView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
+        // See NoteStore.popoverCloseTick: force any sheet still marked
+        // "presented" closed if the popover itself was just force-closed
+        // (e.g. tray-icon click) without going through this sheet's own
+        // dismiss action first.
+        .onChange(of: noteStore.popoverCloseTick) { _, _ in
+            showingSettings = false
+        }
     }
 }

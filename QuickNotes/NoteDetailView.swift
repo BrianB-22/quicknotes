@@ -76,6 +76,12 @@ struct NoteDetailView: View {
         .onChange(of: noteStore.selectedNoteID) { _, _ in
             shouldFocusEditor = true
         }
+        // See NoteStore.popoverCloseTick.
+        .onChange(of: noteStore.popoverCloseTick) { _, _ in
+            passcodePrompt = nil
+            showingDeleteConfirmation = false
+            deletionNotice = nil
+        }
     }
 
     private func header(for note: Note) -> some View {

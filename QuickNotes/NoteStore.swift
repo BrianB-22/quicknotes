@@ -43,6 +43,20 @@ final class NoteStore: ObservableObject {
     /// everything else when the popover closes.
     @Published private(set) var lastUsedPasscode: String?
 
+    /// Bumped every time `popoverDidClose()` runs. Views with a local,
+    /// plain-`@State`-driven `.sheet`/`.confirmationDialog`/`.alert`
+    /// (Settings, lock/unlock passcode prompts, Version History, delete
+    /// confirmation) observe this to force their own presentation closed.
+    /// Without it, force-closing the popover from the tray icon while one of
+    /// those is open — rather than dismissing it first — leaves its SwiftUI
+    /// presentation state stuck `true` behind a popover window that just got
+    /// torn down; every future reopen of the popover then shows a fully
+    /// unresponsive note list, because a phantom modal that isn't visibly
+    /// there is still capturing input. Reported live by the user
+    /// (2026-08-29), reproduced via: open Settings → close the popover from
+    /// the tray icon (not Done) → reopen.
+    @Published private(set) var popoverCloseTick = 0
+
     private var sessionPasscodes: [UUID: String] = [:]
     /// Keys derived from a session's passcode, cached so re-encrypting on every
     /// keystroke (`updateLockedText`) doesn't redo the 200k-iteration PBKDF2
@@ -326,6 +340,7 @@ final class NoteStore: ObservableObject {
         if settings.autoRelockDelay == .immediate {
             relockAll()
         }
+        popoverCloseTick += 1
     }
 
     /// Called when the Touch ID setting is turned off — otherwise a previously
