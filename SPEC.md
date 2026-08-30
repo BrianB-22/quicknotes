@@ -77,8 +77,9 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 - Search does **not** look inside version history — `filteredNotes` only ever matches a note's current text/title, so content that's only in a past version won't surface from the search field; you have to know which note to check and dig through its history manually (left as-is deliberately, see `PUNCHDOWN.md` §6.11 if this gets revisited)
 
 ### Delete
-- `NoteStore.delete` moves the note's JSON file to the macOS Trash (`FileManager.trashItem`) rather than removing it outright — recoverable the same way any Finder delete is, no custom in-app trash/undo system needed
-- After the delete confirmation, a follow-up alert names the note and its filename (`<uuid>.json`) and points to Settings → **Show Notes in Finder…** as the restore path — copy the file back into the Notes folder from `~/.Trash`
+- `NoteStore.delete` moves the note's JSON file to the macOS Trash (`FileManager.trashItem`) rather than removing it outright by default — recoverable the same way any Finder delete is, no custom in-app trash/undo system needed
+- Toggleable in Settings (**Move deleted notes to the Trash**, on by default): when off, `delete` calls `FileManager.removeItem` instead — immediate, permanent, no Trash involved
+- Both the delete confirmation dialog's title and the follow-up alert adapt to which behavior actually happened (`settings.moveDeletedNotesToTrash`, captured into `DeletionNotice.wasMovedToTrash` at the moment of deletion) — "Delete this note?" / "Moved to Trash" with the restore path via Settings → **Show Notes in Finder…**, vs. "Permanently delete this note?" / "Note Deleted" with no restore path, so the wording never claims a recovery option that didn't actually happen
 - The note's title is captured *before* calling `delete()`, not after — once deleted it's gone from `noteStore.notes`, so there's nothing left to read a title from
 
 ### Settings
@@ -87,10 +88,11 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 | Launch at Login | Off |
 | Open QuickNotes with a hotkey | Off, defaults to ⌥N when enabled *(fully user-recordable)* |
 | Open the pop-out window with a hotkey | Off *(user-recordable, independent of the one above)* |
-| Note Text Size | Medium *(Small / Medium / Large)* |
-| Show Note Preview While Locked | Off |
+| Text Size | Medium *(Small / Medium / Large)* |
+| Show Titles for Locked Notes | Off |
 | Auto Re-lock Unlocked Notes | Immediate *(2 / 5 / 10 min / Until app quits)* |
 | Keep Version History | On |
+| Move Deleted Notes to the Trash | On |
 | Check for New Versions | On |
 
 *(Touch ID unlock exists in code but its Settings toggle is currently hidden — shelved as a future feature, see Locking above.)*

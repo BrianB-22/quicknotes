@@ -54,7 +54,7 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - **Markdown preview** — flip a note between plain Text and a rendered MD view (TXT/MD toggle below the editor); in Text mode, a small toolbar inserts Bold/Italic/Code/Heading/Bulleted List/Checklist/Link syntax at the cursor
 - **Tappable checklists in MD mode** — `- [ ] task` lines render as checkboxes you can click to check off, the one interactive thing in an otherwise read-only preview; the change is a normal edit under the hood, so it plays nicely with locked notes and version history
 - **Version History** — on by default. Each time you leave a note you've edited (switch away, or close the popover), its previous text is saved so you can recover it later if you accidentally wipe something out. Right-click a note → **Version History…** for a read-only timeline you can scroll through and copy text from (last 30 versions per note) — the note's current text is always listed first, tagged **(Current)**, so it's easy to compare against any past version below it. Not automatic restore — you copy what you need and paste it back in yourself. **Locked notes are excluded**: history is only ever kept for a currently-plain note, and locking a note clears any history it had, so a note you've locked never leaves a plaintext trail elsewhere in its file.
-- **Deleting a note moves it to the macOS Trash**, not gone-forever — a confirmation shows the note's name and filename, and it's a normal Finder recovery from there (copy it back into the Notes folder, findable via Settings → Show Notes in Finder…) if you delete the wrong one.
+- **Deleting a note moves it to the macOS Trash** by default, not gone-forever — a confirmation shows the note's name and filename, and it's a normal Finder recovery from there (copy it back into the Notes folder, findable via Settings → Show Notes in Finder…) if you delete the wrong one. Turn off "Move deleted notes to the Trash" in Settings to make deleting immediate and permanent instead.
 - **Pop out into a window** — a toolbar button detaches the note list/editor from the menu bar popover into a real, resizable window for comfortable side-by-side editing. Clicking the menu bar icon again always closes the window and reopens the familiar popover right there — a guaranteed way back even if the window gets lost behind other windows, minimized, or pushed to another Space, since it's the same notes and selection either way.
 
 ### 🔒 Locking - Encrypted Notes
@@ -72,10 +72,11 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 | Launch at Login | Off |
 | Open QuickNotes with a hotkey | Off, defaults to ⌥N when enabled *(fully user-recordable)* |
 | Open the pop-out window with a hotkey | Off *(user-recordable, independent of the one above)* |
-| Note Text Size | Medium *(Small / Medium / Large)* |
-| Show Note Preview While Locked | Off |
+| Text Size | Medium *(Small / Medium / Large)* |
+| Show Titles for Locked Notes | Off |
 | Auto Re-lock Unlocked Notes | Immediate *(2 / 5 / 10 min / Until app quits)* |
 | Keep Version History | On |
+| Move Deleted Notes to the Trash | On |
 | Check for New Versions | On |
 
 A "?" button in Settings lists all keyboard shortcuts.

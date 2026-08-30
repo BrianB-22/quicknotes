@@ -140,7 +140,7 @@ struct NoteListView: View {
             VersionHistoryView(noteID: prompt.id).environmentObject(noteStore)
         }
         .confirmationDialog(
-            "Delete this note?",
+            settings.moveDeletedNotesToTrash ? "Delete this note?" : "Permanently delete this note?",
             isPresented: Binding(get: { pendingDeleteID != nil }, set: { if !$0 { pendingDeleteID = nil } }),
             titleVisibility: .visible
         ) {
@@ -149,7 +149,8 @@ struct NoteListView: View {
                     let notice = DeletionNotice(
                         note: note,
                         showLockedPreview: settings.showTitlePreviewWhileLocked,
-                        unlockedText: noteStore.decryptedCache[id]
+                        unlockedText: noteStore.decryptedCache[id],
+                        wasMovedToTrash: settings.moveDeletedNotesToTrash
                     )
                     noteStore.delete(id)
                     deletionNotice = notice
@@ -159,13 +160,17 @@ struct NoteListView: View {
             Button("Cancel", role: .cancel) { pendingDeleteID = nil }
         }
         .alert(
-            "Moved to Trash",
+            deletionNotice?.wasMovedToTrash == true ? "Moved to Trash" : "Note Deleted",
             isPresented: Binding(get: { deletionNotice != nil }, set: { if !$0 { deletionNotice = nil } }),
             presenting: deletionNotice
         ) { _ in
             Button("OK") { deletionNotice = nil }
         } message: { notice in
-            Text("\"\(notice.title)\" was moved to the Trash as \(notice.filename). To restore it, copy the file back into the Notes folder (Settings → Show Notes in Finder…).")
+            if notice.wasMovedToTrash {
+                Text("\"\(notice.title)\" was moved to the Trash as \(notice.filename). To restore it, copy the file back into the Notes folder (Settings → Show Notes in Finder…).")
+            } else {
+                Text("\"\(notice.title)\" was permanently deleted.")
+            }
         }
         // See NoteStore.popoverCloseTick.
         .onChange(of: noteStore.popoverCloseTick) { _, _ in
@@ -271,10 +276,12 @@ struct VersionHistoryPrompt: Identifiable {
 struct DeletionNotice {
     let title: String
     let filename: String
+    let wasMovedToTrash: Bool
 
-    init(note: Note, showLockedPreview: Bool, unlockedText: String?) {
+    init(note: Note, showLockedPreview: Bool, unlockedText: String?, wasMovedToTrash: Bool) {
         title = note.listTitle(showLockedPreview: showLockedPreview, unlockedText: unlockedText)
         filename = "\(note.id.uuidString).json"
+        self.wasMovedToTrash = wasMovedToTrash
     }
 }
 

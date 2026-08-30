@@ -122,6 +122,13 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(versionHistoryEnabled, forKey: "com.quicknotes.versionHistoryEnabled") }
     }
 
+    /// When on (default), deleting a note moves its file to the macOS Trash
+    /// instead of removing it outright, so an accidental delete is
+    /// recoverable. When off, deleting is immediate and permanent.
+    @Published var moveDeletedNotesToTrash: Bool = true {
+        didSet { UserDefaults.standard.set(moveDeletedNotesToTrash, forKey: "com.quicknotes.moveDeletedNotesToTrash") }
+    }
+
     init() {
         if UserDefaults.standard.object(forKey: "com.quicknotes.showTitlePreviewWhileLocked") != nil {
             showTitlePreviewWhileLocked = UserDefaults.standard.bool(forKey: "com.quicknotes.showTitlePreviewWhileLocked")
@@ -156,6 +163,9 @@ final class SettingsStore: ObservableObject {
         }
         if UserDefaults.standard.object(forKey: "com.quicknotes.versionHistoryEnabled") != nil {
             versionHistoryEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.versionHistoryEnabled")
+        }
+        if UserDefaults.standard.object(forKey: "com.quicknotes.moveDeletedNotesToTrash") != nil {
+            moveDeletedNotesToTrash = UserDefaults.standard.bool(forKey: "com.quicknotes.moveDeletedNotesToTrash")
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }

@@ -50,13 +50,18 @@ struct NoteDetailView: View {
         .sheet(item: $passcodePrompt) { prompt in
             PasscodeSheet(prompt: prompt).environmentObject(noteStore).environmentObject(settings)
         }
-        .confirmationDialog("Delete this note?", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
+        .confirmationDialog(
+            settings.moveDeletedNotesToTrash ? "Delete this note?" : "Permanently delete this note?",
+            isPresented: $showingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
             Button("Delete", role: .destructive) {
                 if let note = selectedNote {
                     let notice = DeletionNotice(
                         note: note,
                         showLockedPreview: settings.showTitlePreviewWhileLocked,
-                        unlockedText: noteStore.decryptedCache[note.id]
+                        unlockedText: noteStore.decryptedCache[note.id],
+                        wasMovedToTrash: settings.moveDeletedNotesToTrash
                     )
                     noteStore.delete(note.id)
                     deletionNotice = notice
@@ -65,13 +70,17 @@ struct NoteDetailView: View {
             Button("Cancel", role: .cancel) {}
         }
         .alert(
-            "Moved to Trash",
+            deletionNotice?.wasMovedToTrash == true ? "Moved to Trash" : "Note Deleted",
             isPresented: Binding(get: { deletionNotice != nil }, set: { if !$0 { deletionNotice = nil } }),
             presenting: deletionNotice
         ) { _ in
             Button("OK") { deletionNotice = nil }
         } message: { notice in
-            Text("\"\(notice.title)\" was moved to the Trash as \(notice.filename). To restore it, copy the file back into the Notes folder (Settings → Show Notes in Finder…).")
+            if notice.wasMovedToTrash {
+                Text("\"\(notice.title)\" was moved to the Trash as \(notice.filename). To restore it, copy the file back into the Notes folder (Settings → Show Notes in Finder…).")
+            } else {
+                Text("\"\(notice.title)\" was permanently deleted.")
+            }
         }
         .onChange(of: noteStore.selectedNoteID) { _, _ in
             shouldFocusEditor = true

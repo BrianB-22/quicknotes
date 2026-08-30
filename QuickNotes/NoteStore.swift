@@ -158,13 +158,21 @@ final class NoteStore: ObservableObject {
         sessionKeys[id] = nil
         editSessionBaselines[id] = nil
         KeychainStore.deletePasscode(for: id)
-        // Moves to the macOS Trash rather than removing outright, so an
-        // accidental delete is recoverable — copy the file back into the
-        // Notes folder (see NoteListView/NoteDetailView's post-delete notice).
-        do {
-            try FileManager.default.trashItem(at: fileURL(for: id), resultingItemURL: nil)
-        } catch {
-            Self.logger.error("Failed to move note \(id, privacy: .public) to Trash: \(error.localizedDescription, privacy: .public)")
+        if settings.moveDeletedNotesToTrash {
+            // Moves to the macOS Trash rather than removing outright, so an
+            // accidental delete is recoverable — copy the file back into the
+            // Notes folder (see NoteListView/NoteDetailView's post-delete notice).
+            do {
+                try FileManager.default.trashItem(at: fileURL(for: id), resultingItemURL: nil)
+            } catch {
+                Self.logger.error("Failed to move note \(id, privacy: .public) to Trash: \(error.localizedDescription, privacy: .public)")
+            }
+        } else {
+            do {
+                try FileManager.default.removeItem(at: fileURL(for: id))
+            } catch {
+                Self.logger.error("Failed to permanently delete note \(id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
         }
         // Picking a replacement is left to the view layer (see NoteListView),
         // since only it knows which notes are visible under the active search.

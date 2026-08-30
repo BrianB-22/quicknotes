@@ -51,8 +51,8 @@ struct SettingsView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Note text size")
-                Picker("Note text size", selection: $settings.noteFontSize) {
+                Text("Text Size")
+                Picker("Text Size", selection: $settings.noteFontSize) {
                     ForEach(NoteFontSize.allCases) { size in
                         Text(size.label).tag(size)
                     }
@@ -62,8 +62,8 @@ struct SettingsView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Toggle("Show note preview while locked", isOn: $settings.showTitlePreviewWhileLocked)
-                Text("When on, a locked note's list title shows a snapshot of its first line from before it was locked. When off, locked notes always show a generic \"Locked Note\" label.")
+                Toggle("Show titles for locked notes", isOn: $settings.showTitlePreviewWhileLocked)
+                Text("When on, a locked note keeps its first-line title visible in the list, so it's easier to find at a glance. When off (more private), every locked note shows a generic \"Locked Note\" label instead — its title stays hidden until you unlock it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -92,6 +92,14 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("Move deleted notes to the Trash", isOn: $settings.moveDeletedNotesToTrash)
+                Text("When on, deleting a note moves it to the macOS Trash, recoverable until you empty it. When off, deleting is immediate and permanent — there's no way to get the note back.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             // Touch ID unlock is shelved as a future feature — SecAccessControl-protected
             // Keychain items need a `keychain-access-groups` entitlement that wasn't wired
             // up correctly, and even after fixing that it kept throwing errors. Rather than
@@ -99,19 +107,13 @@ struct SettingsView: View {
             // see the "Touch ID" entries in PUNCHDOWN.md and SPEC.md's Design Decisions for
             // the full investigation. Passcode-only locking is unaffected.
 
+            Toggle("Check for new versions", isOn: $settings.checkForUpdatesEnabled)
+
             VStack(alignment: .leading, spacing: 4) {
                 Button("Show Notes in Finder…") {
                     noteStore.revealNotesFolderInFinder()
                 }
                 Text("Opens the folder on this Mac where your notes are stored as plain files.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Toggle("Check for new versions", isOn: $settings.checkForUpdatesEnabled)
-                Text("On launch, checks GitHub for a newer release. If one exists, opens its download page in your browser — nothing installs automatically.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
