@@ -76,7 +76,7 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(autoRelockDelay.rawValue, forKey: "com.quicknotes.autoRelockDelay") }
     }
 
-    @Published var globalHotkeyEnabled: Bool = true {
+    @Published var globalHotkeyEnabled: Bool = false {
         didSet { UserDefaults.standard.set(globalHotkeyEnabled, forKey: "com.quicknotes.globalHotkeyEnabled") }
     }
 

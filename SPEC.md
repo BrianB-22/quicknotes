@@ -85,7 +85,7 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 | Setting | Default |
 |---|---|
 | Launch at Login | Off |
-| Open QuickNotes with a hotkey | On, defaults to ⌥N *(fully user-recordable)* |
+| Open QuickNotes with a hotkey | Off, defaults to ⌥N when enabled *(fully user-recordable)* |
 | Open the pop-out window with a hotkey | Off *(user-recordable, independent of the one above)* |
 | Note Text Size | Medium *(Small / Medium / Large)* |
 | Show Note Preview While Locked | Off |
