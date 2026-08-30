@@ -131,8 +131,9 @@ final class SettingsStore: ObservableObject {
     }
 
     /// Checks GitHub's latest release once and, if it's newer than this build,
-    /// just opens that release page in the browser — no in-app update flow,
-    /// the user decides there whether to download it.
+    /// asks the user whether to open that release page in the browser — a
+    /// browser window just appearing out of nowhere with no explanation was
+    /// confusing, so this is a real prompt, not a silent redirect.
     func checkForUpdates() {
         guard checkForUpdatesEnabled else { return }
         guard let url = URL(string: "https://api.github.com/repos/BrianB-22/quicknotes/releases/latest") else { return }
@@ -146,9 +147,25 @@ final class SettingsStore: ObservableObject {
             let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
             guard Self.isNewer(remote, than: current) else { return }
             DispatchQueue.main.async {
-                NSWorkspace.shared.open(releaseURL)
+                Self.promptToDownload(version: remote, url: releaseURL)
             }
         }.resume()
+    }
+
+    private static func promptToDownload(version: String, url: URL) {
+        // An accessory (menu-bar-only) app isn't guaranteed to be frontmost
+        // just because a background network check completed — without this,
+        // the alert can appear behind other windows or fail to take focus.
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "A New Version is Available"
+        alert.informativeText = "QuickNotes \(version) is available. Would you like to download it?"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Download")
+        alert.addButton(withTitle: "Not Now")
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private static func isNewer(_ remote: String, than current: String) -> Bool {
