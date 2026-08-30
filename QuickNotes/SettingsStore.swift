@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import AppKit
+import Carbon
 import ServiceManagement
 
 enum NoteFontSize: String, CaseIterable, Identifiable {
@@ -79,9 +80,21 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(globalHotkeyEnabled, forKey: "com.quicknotes.globalHotkeyEnabled") }
     }
 
-    /// A second, user-recordable hotkey that pops the note list/editor straight
-    /// into its own window — the same thing the pop-out toolbar button does —
-    /// independent of the fixed ⌥N popover hotkey above.
+    /// Defaults to ⌥N (preserving existing behavior for anyone who already has
+    /// this on) but is fully user-recordable, same as the window hotkey below —
+    /// a hardcoded combo that can't be changed is no better than not having the
+    /// setting, if it happens to collide with something else on someone's Mac.
+    @Published var globalHotkeyKeyCode: UInt32 = UInt32(kVK_ANSI_N) {
+        didSet { UserDefaults.standard.set(Int(globalHotkeyKeyCode), forKey: "com.quicknotes.globalHotkeyKeyCode") }
+    }
+
+    @Published var globalHotkeyModifiers: UInt32 = UInt32(optionKey) {
+        didSet { UserDefaults.standard.set(Int(globalHotkeyModifiers), forKey: "com.quicknotes.globalHotkeyModifiers") }
+    }
+
+    /// A second, independently user-recordable hotkey that pops the note
+    /// list/editor straight into its own window — the same thing the pop-out
+    /// toolbar button does.
     @Published var windowHotkeyEnabled: Bool = false {
         didSet { UserDefaults.standard.set(windowHotkeyEnabled, forKey: "com.quicknotes.windowHotkeyEnabled") }
     }
@@ -123,6 +136,10 @@ final class SettingsStore: ObservableObject {
         }
         if UserDefaults.standard.object(forKey: "com.quicknotes.globalHotkeyEnabled") != nil {
             globalHotkeyEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.globalHotkeyEnabled")
+        }
+        if UserDefaults.standard.object(forKey: "com.quicknotes.globalHotkeyKeyCode") != nil {
+            globalHotkeyKeyCode = UInt32(UserDefaults.standard.integer(forKey: "com.quicknotes.globalHotkeyKeyCode"))
+            globalHotkeyModifiers = UInt32(UserDefaults.standard.integer(forKey: "com.quicknotes.globalHotkeyModifiers"))
         }
         if UserDefaults.standard.object(forKey: "com.quicknotes.windowHotkeyEnabled") != nil {
             windowHotkeyEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.windowHotkeyEnabled")

@@ -29,11 +29,14 @@ struct SettingsView: View {
             Toggle("Launch at login", isOn: $settings.launchAtLogin)
 
             VStack(alignment: .leading, spacing: 4) {
-                Toggle("Open QuickNotes with ⌥N from anywhere", isOn: $settings.globalHotkeyEnabled)
+                Toggle("Open QuickNotes with a hotkey", isOn: $settings.globalHotkeyEnabled)
                 Text("Works system-wide, even when QuickNotes isn't in focus.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                if settings.globalHotkeyEnabled {
+                    HotkeyRecorder(keyCode: $settings.globalHotkeyKeyCode, modifiers: $settings.globalHotkeyModifiers)
+                }
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -141,6 +144,8 @@ struct SettingsView: View {
         .sheet(isPresented: $showingShortcuts) {
             KeyboardShortcutsView(
                 globalHotkeyEnabled: settings.globalHotkeyEnabled,
+                globalHotkeyKeyCode: settings.globalHotkeyKeyCode,
+                globalHotkeyModifiers: settings.globalHotkeyModifiers,
                 windowHotkeyEnabled: settings.windowHotkeyEnabled,
                 windowHotkeyKeyCode: settings.windowHotkeyKeyCode,
                 windowHotkeyModifiers: settings.windowHotkeyModifiers
@@ -152,6 +157,8 @@ struct SettingsView: View {
 private struct KeyboardShortcutsView: View {
     @Environment(\.dismiss) private var dismiss
     let globalHotkeyEnabled: Bool
+    let globalHotkeyKeyCode: UInt32
+    let globalHotkeyModifiers: UInt32
     let windowHotkeyEnabled: Bool
     let windowHotkeyKeyCode: UInt32
     let windowHotkeyModifiers: UInt32
@@ -163,12 +170,13 @@ private struct KeyboardShortcutsView: View {
             ("⌘Return", "Confirm Lock, Unlock, or Delete"),
             ("Esc", "Cancel a dialog")
         ]
-        if globalHotkeyEnabled {
-            items.insert(("⌥N", "Open QuickNotes from anywhere"), at: 1)
+        if globalHotkeyEnabled, globalHotkeyKeyCode != 0 {
+            let label = HotkeyRecorder.displayString(keyCode: globalHotkeyKeyCode, modifiers: globalHotkeyModifiers)
+            items.insert((label, "Open QuickNotes from anywhere"), at: 1)
         }
         if windowHotkeyEnabled, windowHotkeyKeyCode != 0 {
             let label = HotkeyRecorder.displayString(keyCode: windowHotkeyKeyCode, modifiers: windowHotkeyModifiers)
-            items.insert((label, "Open the pop-out window"), at: globalHotkeyEnabled ? 2 : 1)
+            items.insert((label, "Open the pop-out window"), at: (globalHotkeyEnabled && globalHotkeyKeyCode != 0) ? 2 : 1)
         }
         return items
     }

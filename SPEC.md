@@ -7,7 +7,7 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 - Note icon in the menu bar; click to open/close the popover
 - No Dock icon (`LSUIElement = YES`)
 - Fully local — no network calls except the optional update check
-- Global hotkey ⌥N (toggleable in Settings, on by default)
+- Two independent, user-recordable global hotkeys (toggleable in Settings): one opens the popover (defaults to ⌥N), one pops straight to the detached window
 
 ## Window / Layout
 - Popover size: 640 × 480 pt
@@ -24,7 +24,7 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 - Status item icon: SF Symbol `note.text`
 - Left-click toggles the popover
 - Right-click shows a context menu: **Paste Clipboard as New Note**, About QuickNotes, Quit QuickNotes
-- ⌥N global hotkey via Carbon (`HotkeyManager.swift`, ported from QuickCal), toggle lives in Settings
+- Two independent global hotkeys via Carbon (`HotkeyManager.swift`, ported from QuickCal — two separate instances, distinct registry ids so they coexist): one opens the popover (defaults to ⌥N, but is fully user-recordable — a hardcoded combo that can't be changed is no better than not having the setting if it collides with something else on someone's Mac), one pops straight to the detached window. Both use the same `HotkeyRecorder` control (also ported from QuickCal) and toggle independently in Settings
 
 ### Note List
 - Sort order: pinned notes first, then by `modifiedAt` descending
@@ -47,6 +47,13 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
   - Insertion uses the same one-shot-binding pattern as editor auto-focus: a button sets a `pendingFormat` value, `LinkAwareTextEditor` consumes and clears it in `updateNSView`
   - MD mode renders mostly read-only via `AttributedString(markdown:, options: .full)`. Three gotchas, all shipped once and fixed: (1) `.full` parsing strips block-boundary newlines and list-marker characters entirely and represents structure only via `presentationIntent` metadata — `MarkdownPreviewView` has to manually reinsert a separator whenever a run's block identity changes and re-add bullet/ordinal markers for list items (skipping this makes every block run together on one line with no markers); (2) that separator has to be a full blank line (`"\n\n"`) between separate blocks, not a bare `"\n"` — a single newline just moves to the next line and still reads cramped compared to Text mode's visible blank row, though consecutive items of the *same* list stay tight with a single `"\n"`; (3) a single Enter *within* a paragraph is a CommonMark "soft break" (renders as a plain space per spec, not a line break — `<br>` or two trailing spaces are needed for a real one) — wrong default for a quick-notes app, so every `.softBreak` inline intent is rendered as an actual `"\n"` instead
   - **Checklists are the one interactive exception**: `- [ ] task` / `- [x] task` lines (and `*` in place of `-`) don't go through the `.full` block parser at all — Foundation's `AttributedString(markdown:)` has no native checklist presentation-intent, so it would otherwise render the literal text "[ ] task" as a bullet item. Instead `MarkdownPreviewView` classifies each source line first: contiguous non-checkbox lines are grouped into a block and rendered as above, and each checkbox line becomes its own row (a tappable `square`/`checkmark.square.fill` button + the item's text, parsed inline-only so bold/links inside it still work, struck through when checked). Since `text` is a `Binding` sourced from the same `textBinding(for:)` used by the Text-mode editor, toggling a checkbox is just a normal edit as far as the rest of the app is concerned — `NoteStore.updateText`/`updateLockedText`, search, and version-history checkpointing all pick it up with no special-casing. Only the checkbox glyph is a tap target, not the row text, so `.textSelection(.enabled)` still lets you select/copy a checklist item's text without toggling it by accident.
+
+### Pop-Out Window
+- A toolbar button (hidden once already detached) detaches the note list/editor from the popover into a real, resizable `NSWindow` — same `ContentView`, same `NoteStore`, just a different container (`ContentView(isDetached:)` switches the fixed 640×480 popover frame to a flexible one)
+- The window's position/size persists across launches via `setFrameAutosaveName`; centers itself the first time there's nothing to restore
+- Clicking the menu bar icon (or its own hotkey — see below) while the window is open **always closes the window and reopens the anchored popover**, rather than just bringing the window forward — a guaranteed way back even if the window got lost behind other windows, minimized, or pushed to another Space, since nothing is actually lost either way: same `NoteStore`, same selected note
+- Closing the window runs the same close-time bookkeeping the popover does (checkpoint, relock, stuck-sheet cleanup — see `NoteStore.popoverDidClose`), via `NSWindowDelegate.windowWillClose`
+- A second, independent, user-recordable hotkey (off by default) jumps straight to the detached window from anywhere, calling the exact same `openDetachedWindow()` the toolbar button does
 
 ### Locking (Encryption)
 - Per-note AES-GCM encryption; key derived with PBKDF2 (200k iterations, per-note random salt) from a passcode typed at lock time (`LockManager.swift`)
@@ -78,7 +85,8 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 | Setting | Default |
 |---|---|
 | Launch at Login | Off |
-| Open QuickNotes with ⌥N from anywhere | On |
+| Open QuickNotes with a hotkey | On, defaults to ⌥N *(fully user-recordable)* |
+| Open the pop-out window with a hotkey | Off *(user-recordable, independent of the one above)* |
 | Note Text Size | Medium *(Small / Medium / Large)* |
 | Show Note Preview While Locked | Off |
 | Auto Re-lock Unlocked Notes | Immediate *(2 / 5 / 10 min / Until app quits)* |
@@ -103,8 +111,8 @@ On launch, if enabled, hits `api.github.com/repos/BrianB-22/quicknotes/releases/
 | File | Role |
 |---|---|
 | `QuickNotesApp.swift` | `@main` entry, `@NSApplicationDelegateAdaptor` |
-| `AppDelegate.swift` | `NSStatusItem`, `NSPopover`, global-hotkey wiring, launch-time update check |
-| `ContentView.swift` | Root `HSplitView` — list + detail, hosts the Settings sheet |
+| `AppDelegate.swift` | `NSStatusItem`, `NSPopover`, the detached `NSWindow`, two independent hotkey wirings, launch-time update check |
+| `ContentView.swift` | Root `HSplitView` — list + detail, hosts the Settings sheet; `isDetached` switches between the fixed popover frame and a flexible one |
 | `NoteListView.swift` | Toolbar, search, `List`, `NoteRow`, `PasscodeSheet` |
 | `NoteDetailView.swift` | Header, lock-button state machine, delete confirmation, editor host |
 | `LinkAwareTextEditor.swift` | Custom `NSViewRepresentable` editor — link detection, file drop, markdown-insertion actions |
@@ -114,7 +122,7 @@ On launch, if enabled, hits `api.github.com/repos/BrianB-22/quicknotes/releases/
 | `LockManager.swift` | AES-GCM encrypt/decrypt, PBKDF2 key derivation |
 | `KeychainStore.swift` | Per-note passcode storage in the Keychain |
 | `BiometricAuth.swift` | `LocalAuthentication` (Touch ID) wrapper |
-| `HotkeyManager.swift` | Carbon global-hotkey wrapper (ported from QuickCal) |
+| `HotkeyManager.swift` | Carbon global-hotkey wrapper (ported from QuickCal) — instantiated twice, once per independent hotkey |
 | `ReliableHelp.swift` | AppKit-backed tooltip — SwiftUI's `.help()` is unreliable on icon buttons hosted in an `NSPopover` |
 | `SettingsStore.swift` | `ObservableObject` — `UserDefaults`-backed settings, update-check logic |
 | `QuickNotes.entitlements` | `keychain-access-groups` — required for `SecAccessControl`-protected (Touch ID) Keychain items; see Design Decisions |

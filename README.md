@@ -70,7 +70,8 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 | Setting | Default |
 |---|---|
 | Launch at Login | Off |
-| Open QuickNotes with ⌥N from anywhere | On |
+| Open QuickNotes with a hotkey | On, defaults to ⌥N *(fully user-recordable)* |
+| Open the pop-out window with a hotkey | Off *(user-recordable, independent of the one above)* |
 | Note Text Size | Medium *(Small / Medium / Large)* |
 | Show Note Preview While Locked | Off |
 | Auto Re-lock Unlocked Notes | Immediate *(2 / 5 / 10 min / Until app quits)* |

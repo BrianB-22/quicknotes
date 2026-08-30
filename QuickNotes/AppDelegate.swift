@@ -25,13 +25,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         }
 
         hotkeyManager.onActivate = { [weak self] in self?.togglePopoverFromHotkey() }
-        applyGlobalHotkey(enabled: settings.globalHotkeyEnabled)
-        // @Published fires on willSet, so settings.globalHotkeyEnabled isn't
-        // written yet when this runs — use the value the publisher hands us.
-        settings.$globalHotkeyEnabled
-            .dropFirst()
-            .sink { [weak self] enabled in self?.applyGlobalHotkey(enabled: enabled) }
-            .store(in: &cancellables)
+        applyGlobalHotkey()
+        // Re-apply on any of the three inputs changing. Deferred to the next
+        // run-loop turn: @Published fires on willSet, so reading these
+        // properties from inside the sink itself would still see stale values.
+        Publishers.Merge3(
+            settings.$globalHotkeyEnabled.dropFirst().map { _ in () },
+            settings.$globalHotkeyKeyCode.dropFirst().map { _ in () },
+            settings.$globalHotkeyModifiers.dropFirst().map { _ in () }
+        )
+        .sink { [weak self] in
+            DispatchQueue.main.async { self?.applyGlobalHotkey() }
+        }
+        .store(in: &cancellables)
 
         windowHotkeyManager.onActivate = { [weak self] in self?.openDetachedWindow() }
         applyWindowHotkey()
@@ -101,9 +107,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
 
     // MARK: - Hotkey
 
-    private func applyGlobalHotkey(enabled: Bool) {
-        if enabled {
-            hotkeyManager.register(keyCode: UInt32(kVK_ANSI_N), modifiers: UInt32(optionKey), id: 1)
+    private func applyGlobalHotkey() {
+        if settings.globalHotkeyEnabled, settings.globalHotkeyKeyCode != 0 {
+            hotkeyManager.register(keyCode: settings.globalHotkeyKeyCode, modifiers: settings.globalHotkeyModifiers, id: 1)
         } else {
             hotkeyManager.unregister()
         }
