@@ -3,9 +3,10 @@ import SwiftUI
 import Combine
 import Carbon
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
+    private var detachedWindow: NSWindow?
     let settings = SettingsStore()
     lazy var noteStore = NoteStore(settings: settings)
     private let hotkeyManager = HotkeyManager()
@@ -15,6 +16,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBarItem()
         setupPopover()
+
+        NotificationCenter.default.addObserver(
+            forName: .quickNotesDetach, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.openDetachedWindow()
+        }
 
         hotkeyManager.onActivate = { [weak self] in self?.togglePopoverFromHotkey() }
         applyGlobalHotkey(enabled: settings.globalHotkeyEnabled)
@@ -86,6 +93,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func togglePopoverFromHotkey() {
+        if closeDetachedWindowIfOpen(), let button = statusItem.button {
+            showPopover(from: button)
+            return
+        }
         if popover.isShown {
             popover.performClose(nil)
         } else if let button = statusItem.button {
@@ -99,8 +110,70 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         guard let event = NSApp.currentEvent else { return }
         if event.type == .rightMouseUp { showContextMenu(); return }
         guard let button = statusItem.button else { return }
+        if closeDetachedWindowIfOpen() {
+            showPopover(from: button)
+            return
+        }
         if popover.isShown { popover.performClose(button) }
         else { showPopover(from: button) }
+    }
+
+    // MARK: - Detached window
+
+    /// The menu bar icon is meant to always be a reliable way back, even if the
+    /// detached window got lost behind other windows, minimized, or pushed to
+    /// another Space — "bring it forward" isn't guaranteed to be visible or
+    /// obvious when that happens. Closing it and reopening the familiar
+    /// anchored popover instead loses nothing: it's the same `NoteStore`
+    /// underneath either way, so the same note/selection is still right there.
+    @discardableResult
+    private func closeDetachedWindowIfOpen() -> Bool {
+        guard let window = detachedWindow else { return false }
+        window.close()
+        return true
+    }
+
+    private func openDetachedWindow() {
+        popover.performClose(nil)
+
+        if let window = detachedWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "QuickNotes"
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.contentViewController = NSHostingController(
+            rootView: ContentView(isDetached: true)
+                .environmentObject(settings)
+                .environmentObject(noteStore)
+        )
+        window.setFrameAutosaveName("QuickNotesDetachedWindow")
+        if window.frame.origin == .zero {
+            // No autosaved position yet (first time detaching) — center it.
+            window.center()
+        }
+
+        detachedWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard notification.object as? NSWindow === detachedWindow else { return }
+        detachedWindow = nil
+        // Same "no QuickNotes surface is visible anymore" bookkeeping the
+        // popover does on close — checkpoint, relock, force any stuck sheet
+        // closed (see NoteStore.popoverCloseTick).
+        noteStore.popoverDidClose()
     }
 
     private func showPopover(from button: NSStatusBarButton) {
@@ -148,4 +221,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     @objc private func quitApp() {
         NSApp.terminate(nil)
     }
+}
+
+extension Notification.Name {
+    static let quickNotesDetach = Notification.Name("com.quicknotes.detach")
 }

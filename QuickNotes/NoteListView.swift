@@ -5,6 +5,7 @@ struct NoteListView: View {
     @EnvironmentObject var noteStore: NoteStore
     @EnvironmentObject var settings: SettingsStore
     @Binding var showingSettings: Bool
+    let isDetached: Bool
     @State private var passcodePrompt: PasscodePrompt?
     @State private var searchText = ""
     @State private var pendingDeleteID: UUID?
@@ -50,6 +51,20 @@ struct NoteListView: View {
                 .reliableHelp("New Note from Clipboard")
 
                 Spacer()
+
+                if !isDetached {
+                    Button(action: { NotificationCenter.default.post(name: .quickNotesDetach, object: nil) }) {
+                        Image(systemName: "macwindow")
+                            .overlay(alignment: .bottomLeading) {
+                                Image(systemName: "arrow.down.left")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .offset(x: -3, y: 3)
+                            }
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .reliableHelp("Open in a Window")
+                }
 
                 Button(action: { showingSettings = true }) {
                     Image(systemName: "gearshape")

@@ -4,15 +4,19 @@ struct ContentView: View {
     @EnvironmentObject var noteStore: NoteStore
     @EnvironmentObject var settings: SettingsStore
     @State private var showingSettings = false
+    var isDetached: Bool = false
 
     var body: some View {
         HSplitView {
-            NoteListView(showingSettings: $showingSettings)
-                .frame(minWidth: 200, idealWidth: 220, maxWidth: 300)
+            NoteListView(showingSettings: $showingSettings, isDetached: isDetached)
+                .frame(minWidth: 200, idealWidth: 220, maxWidth: isDetached ? .infinity : 300)
             NoteDetailView()
                 .frame(minWidth: 340)
         }
-        .frame(width: 640, height: 480)
+        .frame(
+            minWidth: isDetached ? 560 : 640, idealWidth: 640, maxWidth: isDetached ? .infinity : 640,
+            minHeight: isDetached ? 360 : 480, idealHeight: 480, maxHeight: isDetached ? .infinity : 480
+        )
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
