@@ -79,6 +79,21 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(globalHotkeyEnabled, forKey: "com.quicknotes.globalHotkeyEnabled") }
     }
 
+    /// A second, user-recordable hotkey that pops the note list/editor straight
+    /// into its own window — the same thing the pop-out toolbar button does —
+    /// independent of the fixed ⌥N popover hotkey above.
+    @Published var windowHotkeyEnabled: Bool = false {
+        didSet { UserDefaults.standard.set(windowHotkeyEnabled, forKey: "com.quicknotes.windowHotkeyEnabled") }
+    }
+
+    @Published var windowHotkeyKeyCode: UInt32 = 0 {
+        didSet { UserDefaults.standard.set(Int(windowHotkeyKeyCode), forKey: "com.quicknotes.windowHotkeyKeyCode") }
+    }
+
+    @Published var windowHotkeyModifiers: UInt32 = 0 {
+        didSet { UserDefaults.standard.set(Int(windowHotkeyModifiers), forKey: "com.quicknotes.windowHotkeyModifiers") }
+    }
+
     @Published var useTouchIDForLockedNotes: Bool = false {
         didSet { UserDefaults.standard.set(useTouchIDForLockedNotes, forKey: "com.quicknotes.useTouchIDForLockedNotes") }
     }
@@ -108,6 +123,13 @@ final class SettingsStore: ObservableObject {
         }
         if UserDefaults.standard.object(forKey: "com.quicknotes.globalHotkeyEnabled") != nil {
             globalHotkeyEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.globalHotkeyEnabled")
+        }
+        if UserDefaults.standard.object(forKey: "com.quicknotes.windowHotkeyEnabled") != nil {
+            windowHotkeyEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.windowHotkeyEnabled")
+        }
+        if UserDefaults.standard.object(forKey: "com.quicknotes.windowHotkeyKeyCode") != nil {
+            windowHotkeyKeyCode = UInt32(UserDefaults.standard.integer(forKey: "com.quicknotes.windowHotkeyKeyCode"))
+            windowHotkeyModifiers = UInt32(UserDefaults.standard.integer(forKey: "com.quicknotes.windowHotkeyModifiers"))
         }
         // Touch ID is shelved as a future feature (see SettingsView.swift) — deliberately
         // not restoring any previously-saved `true` value here, so it stays off even for

@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     let settings = SettingsStore()
     lazy var noteStore = NoteStore(settings: settings)
     private let hotkeyManager = HotkeyManager()
+    private let windowHotkeyManager = HotkeyManager()
     private var cancellables = Set<AnyCancellable>()
     private var outsideClickMonitor: Any?
 
@@ -31,6 +32,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             .dropFirst()
             .sink { [weak self] enabled in self?.applyGlobalHotkey(enabled: enabled) }
             .store(in: &cancellables)
+
+        windowHotkeyManager.onActivate = { [weak self] in self?.openDetachedWindow() }
+        applyWindowHotkey()
+        // Re-apply on any of the three inputs changing — enabling/disabling it,
+        // or recording a new key combo while it's already enabled. Deferred to
+        // the next run-loop turn: @Published fires on willSet, so reading these
+        // properties from inside the sink itself would still see stale values.
+        Publishers.Merge3(
+            settings.$windowHotkeyEnabled.dropFirst().map { _ in () },
+            settings.$windowHotkeyKeyCode.dropFirst().map { _ in () },
+            settings.$windowHotkeyModifiers.dropFirst().map { _ in () }
+        )
+        .sink { [weak self] in
+            DispatchQueue.main.async { self?.applyWindowHotkey() }
+        }
+        .store(in: &cancellables)
 
         // Turning Touch ID off shouldn't leave previously saved passcodes
         // sitting in the Keychain indefinitely with no way for the user to
@@ -89,6 +106,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             hotkeyManager.register(keyCode: UInt32(kVK_ANSI_N), modifiers: UInt32(optionKey), id: 1)
         } else {
             hotkeyManager.unregister()
+        }
+    }
+
+    /// Distinct `id: 2` from the popover hotkey's `id: 1` — HotkeyManager's
+    /// registry is keyed by id, so these two coexist as independently
+    /// registered Carbon hotkeys.
+    private func applyWindowHotkey() {
+        if settings.windowHotkeyEnabled, settings.windowHotkeyKeyCode != 0 {
+            windowHotkeyManager.register(keyCode: settings.windowHotkeyKeyCode, modifiers: settings.windowHotkeyModifiers, id: 2)
+        } else {
+            windowHotkeyManager.unregister()
         }
     }
 
