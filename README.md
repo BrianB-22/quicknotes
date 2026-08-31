@@ -125,7 +125,7 @@ No external dependencies. No Swift packages to resolve.
 
 ## About
 
-QuickNotes — part of the same "quick" menu bar app family as [QuickCal](https://github.com/BrianB-22/quickcal).
+Check out my other handy "Quick" menu bar tools, like [QuickCal](https://github.com/BrianB-22/quickcal).
 
 Interested in other handy utilities like this? Check out [bernacki.me](https://bernacki.me).
 
