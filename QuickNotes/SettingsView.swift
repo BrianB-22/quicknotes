@@ -153,7 +153,7 @@ struct SettingsView: View {
             }
         }
         .padding(20)
-        .frame(width: 360)
+        .frame(width: 460)
         .sheet(isPresented: $showingShortcuts) {
             KeyboardShortcutsView(
                 globalHotkeyEnabled: settings.globalHotkeyEnabled,
