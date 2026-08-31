@@ -65,6 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             }
             .store(in: &cancellables)
 
+        settings.showWelcomePromptIfNeeded()
         settings.checkForUpdates()
     }
 

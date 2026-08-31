@@ -38,6 +38,8 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 
 ## Features
 
+A one-time welcome prompt on first launch points you to Settings and offers to turn on Launch at Login — shown once, ever, regardless of which you choose.
+
 ### 📝 Notes
 - Split view: a list on the left, the selected note on the right
 - A note's title is just its first line — no separate naming step

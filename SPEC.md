@@ -20,6 +20,10 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 
 ## Feature List
 
+### First Launch
+- `SettingsStore.showWelcomePromptIfNeeded()`, called once from `AppDelegate.applicationDidFinishLaunching` before the update check — a plain `NSAlert` (same style as the update-available prompt) pointing to Settings and offering to turn on Launch at Login
+- Gated by a single `UserDefaults` flag (`com.quicknotes.hasShownWelcomePrompt`) set to `true` immediately, before the alert is even shown — it never appears again after the first launch, regardless of which button is picked
+
 ### Menu Bar
 - Status item icon: SF Symbol `note.text`
 - Left-click toggles the popover

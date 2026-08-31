@@ -179,6 +179,25 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Shows once, ever, on the very first launch after a fresh install — never
+    /// again after that regardless of which button is chosen.
+    func showWelcomePromptIfNeeded() {
+        let key = "com.quicknotes.hasShownWelcomePrompt"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Welcome to QuickNotes"
+        alert.informativeText = "For more options and information, check out Settings (the gear icon).\n\nWould you like QuickNotes to start automatically when you log in?"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Yes, Launch at Login")
+        alert.addButton(withTitle: "Not Now")
+        if alert.runModal() == .alertFirstButtonReturn {
+            launchAtLogin = true
+        }
+    }
+
     /// Checks GitHub's latest release once and, if it's newer than this build,
     /// asks the user whether to open that release page in the browser — a
     /// browser window just appearing out of nowhere with no explanation was
