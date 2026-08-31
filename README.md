@@ -92,7 +92,7 @@ Notes are stored as plain JSON files in `~/Library/Application Support/QuickNote
 
 *Note: If "Check for new versions" is enabled in Settings (on by default), QuickNotes checks GitHub's release API on launch to see if a newer version exists — the only network call the app makes, and it never sends anything about you or your notes.*
 
-See [SECURITY.md](SECURITY.md) for a full breakdown (dependencies, entitlements, network behavior, encryption) — useful if you need to get this approved for use at work.
+See [SECURITY.md](SECURITY.md) for a full breakdown (dependencies, entitlements, network behavior, encryption) — useful if you need to get this approved for use at work. Secret scanning, Dependabot alerts, CodeQL code scanning, and private vulnerability reporting are all enabled on this repo — see the live [security dashboard](https://github.com/BrianB-22/quicknotes/security).
 
 ---
 
