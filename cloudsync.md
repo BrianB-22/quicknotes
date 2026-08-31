@@ -1,6 +1,6 @@
 # CloudSync — Idea for Future Discussion
 
-**Status: not decided, not started. Planning notes only.**
+**Status: dead idea, for now.** Goes against the local-only, secured-storage concept the app is actually built around — kept here only as a record of the discussion in case it's ever reconsidered.
 
 An optional, paid, opt-in sync feature for QuickNotes — explicitly *not* part of the core app's identity. Local-only stays free and the default forever; this would be a separate mode layered on top.
 
