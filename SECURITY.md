@@ -57,4 +57,4 @@ This repository is public. Every line of code that ships in a release is here to
 
 ## Reporting a concern
 
-This is a personal, unpaid side project — there's no formal disclosure program, but open an issue on this repository (or reach out via [bernacki.me](https://bernacki.me)) for anything security-relevant.
+This is a personal, unpaid side project — there's no formal disclosure program, but [private vulnerability reporting](https://github.com/BrianB-22/quicknotes/security/advisories/new) is enabled on this repository for anything that shouldn't be filed as a public issue. For anything else, open a regular issue, or reach out via [bernacki.me](https://bernacki.me).
