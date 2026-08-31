@@ -107,6 +107,22 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(Int(windowHotkeyModifiers), forKey: "com.quicknotes.windowHotkeyModifiers") }
     }
 
+    /// A third, independently user-recordable hotkey that pastes the current
+    /// clipboard as a new note directly — same action as the toolbar button and
+    /// the tray-icon right-click menu item, just reachable with zero clicks from
+    /// anywhere on the Mac.
+    @Published var pasteHotkeyEnabled: Bool = false {
+        didSet { UserDefaults.standard.set(pasteHotkeyEnabled, forKey: "com.quicknotes.pasteHotkeyEnabled") }
+    }
+
+    @Published var pasteHotkeyKeyCode: UInt32 = 0 {
+        didSet { UserDefaults.standard.set(Int(pasteHotkeyKeyCode), forKey: "com.quicknotes.pasteHotkeyKeyCode") }
+    }
+
+    @Published var pasteHotkeyModifiers: UInt32 = 0 {
+        didSet { UserDefaults.standard.set(Int(pasteHotkeyModifiers), forKey: "com.quicknotes.pasteHotkeyModifiers") }
+    }
+
     @Published var useTouchIDForLockedNotes: Bool = false {
         didSet { UserDefaults.standard.set(useTouchIDForLockedNotes, forKey: "com.quicknotes.useTouchIDForLockedNotes") }
     }
@@ -154,6 +170,13 @@ final class SettingsStore: ObservableObject {
         if UserDefaults.standard.object(forKey: "com.quicknotes.windowHotkeyKeyCode") != nil {
             windowHotkeyKeyCode = UInt32(UserDefaults.standard.integer(forKey: "com.quicknotes.windowHotkeyKeyCode"))
             windowHotkeyModifiers = UInt32(UserDefaults.standard.integer(forKey: "com.quicknotes.windowHotkeyModifiers"))
+        }
+        if UserDefaults.standard.object(forKey: "com.quicknotes.pasteHotkeyEnabled") != nil {
+            pasteHotkeyEnabled = UserDefaults.standard.bool(forKey: "com.quicknotes.pasteHotkeyEnabled")
+        }
+        if UserDefaults.standard.object(forKey: "com.quicknotes.pasteHotkeyKeyCode") != nil {
+            pasteHotkeyKeyCode = UInt32(UserDefaults.standard.integer(forKey: "com.quicknotes.pasteHotkeyKeyCode"))
+            pasteHotkeyModifiers = UInt32(UserDefaults.standard.integer(forKey: "com.quicknotes.pasteHotkeyModifiers"))
         }
         // Touch ID is shelved as a future feature (see SettingsView.swift) — deliberately
         // not restoring any previously-saved `true` value here, so it stays off even for

@@ -44,7 +44,7 @@ A one-time welcome prompt on first launch points you to Settings and offers to t
 - Split view: a list on the left, the selected note on the right
 - A note's title is just its first line — no separate naming step
 - **⌘N** creates a note and focuses the editor immediately
-- **Paste Clipboard as New Note** — from the toolbar, or right-click the menu bar icon to do it without even opening the popover
+- **Paste Clipboard as New Note** — from the toolbar, right-click the menu bar icon, or a dedicated user-recordable hotkey (off by default) to do it from anywhere with zero clicks
 - **Copy** the current note straight to the clipboard
 - Search notes by title or content, with a one-click × to clear
 - **Color labels** — six sticky-note colors for quick visual scanning
@@ -74,6 +74,7 @@ A one-time welcome prompt on first launch points you to Settings and offers to t
 | Launch at Login | Off |
 | Open QuickNotes with a hotkey | Off, defaults to ⌥N when enabled *(fully user-recordable)* |
 | Open the pop-out window with a hotkey | Off *(user-recordable, independent of the one above)* |
+| Paste clipboard as a new note with a hotkey | Off *(user-recordable, independent of the others)* |
 | Text Size | Medium *(Small / Medium / Large)* |
 | Show Titles for Locked Notes | Off |
 | Auto Re-lock Unlocked Notes | Immediate *(2 / 5 / 10 min / Until app quits)* |

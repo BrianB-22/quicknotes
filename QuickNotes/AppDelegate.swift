@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     lazy var noteStore = NoteStore(settings: settings)
     private let hotkeyManager = HotkeyManager()
     private let windowHotkeyManager = HotkeyManager()
+    private let pasteHotkeyManager = HotkeyManager()
     private var cancellables = Set<AnyCancellable>()
     private var outsideClickMonitor: Any?
 
@@ -52,6 +53,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         )
         .sink { [weak self] in
             DispatchQueue.main.async { self?.applyWindowHotkey() }
+        }
+        .store(in: &cancellables)
+
+        pasteHotkeyManager.onActivate = { [weak self] in self?.pasteClipboardAsNewNote() }
+        applyPasteHotkey()
+        // Re-apply on any of the three inputs changing. Deferred to the next
+        // run-loop turn: @Published fires on willSet, so reading these
+        // properties from inside the sink itself would still see stale values.
+        Publishers.Merge3(
+            settings.$pasteHotkeyEnabled.dropFirst().map { _ in () },
+            settings.$pasteHotkeyKeyCode.dropFirst().map { _ in () },
+            settings.$pasteHotkeyModifiers.dropFirst().map { _ in () }
+        )
+        .sink { [weak self] in
+            DispatchQueue.main.async { self?.applyPasteHotkey() }
         }
         .store(in: &cancellables)
 
@@ -124,6 +140,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             windowHotkeyManager.register(keyCode: settings.windowHotkeyKeyCode, modifiers: settings.windowHotkeyModifiers, id: 2)
         } else {
             windowHotkeyManager.unregister()
+        }
+    }
+
+    /// Distinct `id: 3` — a third independently registered Carbon hotkey.
+    private func applyPasteHotkey() {
+        if settings.pasteHotkeyEnabled, settings.pasteHotkeyKeyCode != 0 {
+            pasteHotkeyManager.register(keyCode: settings.pasteHotkeyKeyCode, modifiers: settings.pasteHotkeyModifiers, id: 3)
+        } else {
+            pasteHotkeyManager.unregister()
         }
     }
 
@@ -247,6 +272,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     @objc private func pasteClipboardAsNewNote() {
         guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return }
         noteStore.createNote(text: text)
+        // Both callers of this (the right-click menu item and the paste hotkey)
+        // create the note without ever showing the popover — a system sound is
+        // the only real-time confirmation that anything actually happened.
+        NSSound.beep()
     }
 
     @objc private func showAbout() {

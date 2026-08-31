@@ -28,7 +28,7 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 - Status item icon: SF Symbol `note.text`
 - Left-click toggles the popover
 - Right-click shows a context menu: **Paste Clipboard as New Note**, About QuickNotes, Quit QuickNotes
-- Two independent global hotkeys via Carbon (`HotkeyManager.swift`, ported from QuickCal — two separate instances, distinct registry ids so they coexist): one opens the popover (defaults to ⌥N, but is fully user-recordable — a hardcoded combo that can't be changed is no better than not having the setting if it collides with something else on someone's Mac), one pops straight to the detached window. Both use the same `HotkeyRecorder` control (also ported from QuickCal) and toggle independently in Settings
+- Three independent global hotkeys via Carbon (`HotkeyManager.swift`, ported from QuickCal — three separate instances, distinct registry ids 1/2/3 so they coexist): one opens the popover (defaults to ⌥N, but is fully user-recordable — a hardcoded combo that can't be changed is no better than not having the setting if it collides with something else on someone's Mac), one pops straight to the detached window, one pastes the clipboard as a new note directly (same action as the toolbar button and the tray-icon right-click item, reachable with zero clicks from anywhere). All three use the same `HotkeyRecorder` control (also ported from QuickCal), toggle independently in Settings, and default to off on a fresh install
 
 ### Note List
 - Sort order: pinned notes first, then by `modifiedAt` descending
@@ -92,6 +92,7 @@ QuickNotes is a macOS menu bar app for quick, disposable plain-text notes — th
 | Launch at Login | Off |
 | Open QuickNotes with a hotkey | Off, defaults to ⌥N when enabled *(fully user-recordable)* |
 | Open the pop-out window with a hotkey | Off *(user-recordable, independent of the one above)* |
+| Paste clipboard as a new note with a hotkey | Off *(user-recordable, independent of the others)* |
 | Text Size | Medium *(Small / Medium / Large)* |
 | Show Titles for Locked Notes | Off |
 | Auto Re-lock Unlocked Notes | Immediate *(2 / 5 / 10 min / Until app quits)* |

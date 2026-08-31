@@ -51,6 +51,17 @@ struct SettingsView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
+                Toggle("Paste clipboard as a new note with a hotkey", isOn: $settings.pasteHotkeyEnabled)
+                Text("Copy anything, hit this from anywhere on your Mac, and it's a new note — without opening the popover or right-clicking the menu bar icon.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if settings.pasteHotkeyEnabled {
+                    HotkeyRecorder(keyCode: $settings.pasteHotkeyKeyCode, modifiers: $settings.pasteHotkeyModifiers)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Text Size")
                 Picker("Text Size", selection: $settings.noteFontSize) {
                     ForEach(NoteFontSize.allCases) { size in
@@ -150,7 +161,10 @@ struct SettingsView: View {
                 globalHotkeyModifiers: settings.globalHotkeyModifiers,
                 windowHotkeyEnabled: settings.windowHotkeyEnabled,
                 windowHotkeyKeyCode: settings.windowHotkeyKeyCode,
-                windowHotkeyModifiers: settings.windowHotkeyModifiers
+                windowHotkeyModifiers: settings.windowHotkeyModifiers,
+                pasteHotkeyEnabled: settings.pasteHotkeyEnabled,
+                pasteHotkeyKeyCode: settings.pasteHotkeyKeyCode,
+                pasteHotkeyModifiers: settings.pasteHotkeyModifiers
             )
         }
     }
@@ -164,23 +178,29 @@ private struct KeyboardShortcutsView: View {
     let windowHotkeyEnabled: Bool
     let windowHotkeyKeyCode: UInt32
     let windowHotkeyModifiers: UInt32
+    let pasteHotkeyEnabled: Bool
+    let pasteHotkeyKeyCode: UInt32
+    let pasteHotkeyModifiers: UInt32
 
     private var shortcuts: [(String, String)] {
-        var items = [
-            ("⌘N", "New note"),
+        var hotkeyItems: [(String, String)] = []
+        if globalHotkeyEnabled, globalHotkeyKeyCode != 0 {
+            let label = HotkeyRecorder.displayString(keyCode: globalHotkeyKeyCode, modifiers: globalHotkeyModifiers)
+            hotkeyItems.append((label, "Open QuickNotes from anywhere"))
+        }
+        if windowHotkeyEnabled, windowHotkeyKeyCode != 0 {
+            let label = HotkeyRecorder.displayString(keyCode: windowHotkeyKeyCode, modifiers: windowHotkeyModifiers)
+            hotkeyItems.append((label, "Open the pop-out window"))
+        }
+        if pasteHotkeyEnabled, pasteHotkeyKeyCode != 0 {
+            let label = HotkeyRecorder.displayString(keyCode: pasteHotkeyKeyCode, modifiers: pasteHotkeyModifiers)
+            hotkeyItems.append((label, "Paste clipboard as a new note"))
+        }
+        return [("⌘N", "New note")] + hotkeyItems + [
             ("Right-click menu bar icon", "Paste clipboard as new note"),
             ("⌘Return", "Confirm Lock, Unlock, or Delete"),
             ("Esc", "Cancel a dialog")
         ]
-        if globalHotkeyEnabled, globalHotkeyKeyCode != 0 {
-            let label = HotkeyRecorder.displayString(keyCode: globalHotkeyKeyCode, modifiers: globalHotkeyModifiers)
-            items.insert((label, "Open QuickNotes from anywhere"), at: 1)
-        }
-        if windowHotkeyEnabled, windowHotkeyKeyCode != 0 {
-            let label = HotkeyRecorder.displayString(keyCode: windowHotkeyKeyCode, modifiers: windowHotkeyModifiers)
-            items.insert((label, "Open the pop-out window"), at: (globalHotkeyEnabled && globalHotkeyKeyCode != 0) ? 2 : 1)
-        }
-        return items
     }
 
     var body: some View {
