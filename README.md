@@ -63,7 +63,7 @@ Everything lives in your menu bar. Click the icon, see your notes, jot one down,
 - Configurable **auto re-lock**: Immediate, 2/5/10 minutes, or until QuickNotes quits
 - **Remove Lock…** — right-click a locked note to permanently decrypt it back into a normal note, after verifying the passcode
 - Optional first-line preview for locked notes in the list (off by default — locked notes show a generic label unless you turn this on)
-- Clear warnings when locking a note: there's no passcode recovery, and any linked files are *not* themselves encrypted — only the note's text is
+- Warning on Passwords: there's no passcode recovery, and any linked files are *not* themselves encrypted — only the note's text is
 
 ### ⚙️ Settings
 
