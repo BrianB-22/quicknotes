@@ -87,7 +87,9 @@ A "?" button in Settings lists all keyboard shortcuts.
 
 ## Storage & Privacy
 
-Notes are stored as plain JSON files in `~/Library/Application Support/QuickNotes/` — one file per note, nothing else. No iCloud, no analytics, no network requests of any kind. **Show Notes in Finder…** in Settings opens that folder directly.
+Notes are stored as plain JSON files in `~/Library/Application Support/QuickNotes/` — one file per note, nothing else. No iCloud, no analytics, no accounts. **Show Notes in Finder…** in Settings opens that folder directly.
+
+*Note: If "Check for new versions" is enabled in Settings (on by default), QuickNotes checks GitHub's release API on launch to see if a newer version exists — the only network call the app makes, and it never sends anything about you or your notes.*
 
 ---
 
@@ -126,3 +128,7 @@ No external dependencies. No Swift packages to resolve.
 QuickNotes — part of the same "quick" menu bar app family as [QuickCal](https://github.com/BrianB-22/quickcal).
 
 Interested in other handy utilities like this? Check out [bernacki.me](https://bernacki.me).
+
+---
+
+This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. Use at your own risk.
