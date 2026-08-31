@@ -51,6 +51,15 @@ codesign -dv --verbose=4 QuickNotes.app
 spctl -a -vv QuickNotes.app
 ```
 
+## GitHub-native security tooling
+
+All of the following are enabled on this repository, visible under its Security tab:
+
+- **Secret scanning** — flags any credential or API key accidentally committed
+- **Dependabot alerts** — would flag known vulnerabilities in dependencies; nothing to alert on today given zero external dependencies, but active in case that ever changes
+- **Code scanning (CodeQL)** — static analysis of the actual Swift source for common vulnerability and coding-error patterns
+- **Private vulnerability reporting** — see below
+
 ## Full source availability
 
 This repository is public. Every line of code that ships in a release is here to read — nothing closed-source, nothing obfuscated. The `Building from Source` section in `README.md` covers building it directly from source if you'd rather not trust a pre-built binary at all.
