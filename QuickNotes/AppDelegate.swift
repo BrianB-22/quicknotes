@@ -118,6 +118,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // that actually lands elsewhere does.
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp, .rightMouseUp]) { [weak self] _ in
             guard let self, self.popover.isShown else { return }
+            // As of macOS 27, the same mouseUp that clicks the status item
+            // button (and whose action just opened the popover via
+            // showPopover) is now also delivered here — previously it never
+            // was. Without this guard, that click's own mouseUp closes the
+            // popover the instant it opens: it flashes and disappears with
+            // no error. The button's own action already owns open/close for
+            // clicks on itself, so ignore clicks located over it here.
+            if let button = self.statusItem.button, let buttonWindow = button.window {
+                let buttonFrameOnScreen = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+                if buttonFrameOnScreen.contains(NSEvent.mouseLocation) {
+                    return
+                }
+            }
             self.popover.performClose(nil)
         }
     }
