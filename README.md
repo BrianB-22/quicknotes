@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="https://github.com/BrianB-22/quicknotes/releases/latest">
-    <img src="https://img.shields.io/badge/Download-v1.8-blue?style=for-the-badge&logo=apple" alt="Download v1.8" />
+    <img src="https://img.shields.io/badge/Download-v1.9-blue?style=for-the-badge&logo=apple" alt="Download v1.9" />
   </a>
 </p>
 
@@ -105,7 +105,7 @@ See [SECURITY.md](SECURITY.md) for a full breakdown (dependencies, entitlements,
 
 ## Download
 
-**[⬇ Download QuickNotes v1.8](https://github.com/BrianB-22/quicknotes/releases/latest)**
+**[⬇ Download QuickNotes v1.9](https://github.com/BrianB-22/quicknotes/releases/latest)**
 
 1. Download the DMG and open it
 2. Drag **QuickNotes** into the **Applications** shortcut in the same window

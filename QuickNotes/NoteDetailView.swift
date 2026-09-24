@@ -37,6 +37,7 @@ struct NoteDetailView: View {
                                 )
                             }
                         }
+                        .background(.windowBackground)
                         Divider()
                         formatBar(for: note)
                     }
